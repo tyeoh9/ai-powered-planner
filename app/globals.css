@@ -1,0 +1,196 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* TipTap editor styling */
+.ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ===== Ghost Thinking Indicator (inline "...") ===== */
+.ghost-thinking {
+  color: #9ca3af;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.3;
+  }
+}
+
+/* ===== Ghost Text Suggestion (like code completion) ===== */
+.ghost-suggestion-container {
+  display: inline;
+}
+
+.ghost-text-content {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  white-space: pre-wrap;
+}
+
+.ghost-hint {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #6b7280;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ghost-hint kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  margin: 0 2px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+/* ===== Inline Suggestion Extension Styles ===== */
+.inline-suggestion-container {
+  display: inline-block;
+  position: relative;
+}
+
+.inline-suggestion-text {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  white-space: pre-wrap;
+  display: inline;
+}
+
+.inline-suggestion-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.suggestion-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.suggestion-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.suggestion-btn-accept {
+  border-color: #22c55e;
+  color: #16a34a;
+}
+
+.suggestion-btn-accept:hover {
+  background: #dcfce7;
+}
+
+.suggestion-btn-reject {
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.suggestion-btn-reject:hover {
+  background: #fee2e2;
+}
+
+.suggestion-btn kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.suggestion-heading {
+  font-weight: 600;
+  display: block;
+  margin-top: 4px;
+}
+
+.suggestion-list-item {
+  display: block;
+  margin-left: 8px;
+}
+
+/* Thinking indicator */
+.inline-thinking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+.thinking-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: thinking-pulse 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinking-pulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,140 @@
+'use client'
+
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import { useEffect, useCallback, useRef } from 'react'
+import { useEditorStore } from '@/store/editor-store'
+import { useSuggestion } from '@/hooks/useSuggestion'
+import { InlineSuggestion } from '@/extensions/inline-suggestion'
+
+// Convert markdown to plain text (remove formatting)
+function markdownToPlainText(markdown: string): string {
+  return markdown
+    .replace(/^## /gm, '\n') // Remove ## but keep newline
+    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
+    .replace(/^- /gm, '• ') // Convert list markers to bullets
+    .trim()
+}
+
+export function Editor() {
+  const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
+    useEditorStore()
+  const { triggerSuggestion, cancelSuggestion } = useSuggestion()
+
+  // Use refs for callbacks so they can be updated
+  const acceptCallbackRef = useRef<(() => void) | undefined>(undefined)
+  const rejectCallbackRef = useRef<(() => void) | undefined>(undefined)
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder:
+          'Describe your project... (e.g., "My project is a social media app for dog owners")',
+      }),
+      InlineSuggestion.configure({
+        suggestion: null,
+        isGenerating: false,
+        suggestionStartPos: 0,
+        onAccept: () => acceptCallbackRef.current?.(),
+        onReject: () => rejectCallbackRef.current?.(),
+      }),
+    ],
+    content: '',
+    immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      const newContent = editor.getText()
+      setContent(newContent)
+
+      const docSize = editor.state.doc.content.size
+      triggerSuggestion(newContent, docSize)
+    },
+  })
+
+  const handleAccept = useCallback(() => {
+    if (!editor) return
+
+    const content = acceptSuggestion()
+    if (content) {
+      // Insert as plain text
+      const plainText = markdownToPlainText(content)
+      editor.chain().focus().insertContent(plainText).run()
+    }
+  }, [editor, acceptSuggestion])
+
+  const handleReject = useCallback(() => {
+    rejectSuggestion()
+    cancelSuggestion()
+  }, [rejectSuggestion, cancelSuggestion])
+
+  // Update callback refs
+  useEffect(() => {
+    acceptCallbackRef.current = handleAccept
+    rejectCallbackRef.current = handleReject
+  }, [handleAccept, handleReject])
+
+  // Update the inline suggestion extension when suggestion state changes
+  useEffect(() => {
+    if (!editor) return
+
+    const extension = editor.extensionManager.extensions.find(
+      (ext) => ext.name === 'inlineSuggestion'
+    )
+    if (!extension) return
+
+    const plainTextSuggestion = suggestion ? markdownToPlainText(suggestion.content) : null
+    const suggestionStartPos = suggestion ? suggestion.position : 0
+
+    // Update extension options
+    extension.options.suggestion = plainTextSuggestion
+    extension.options.isGenerating = isGenerating
+    extension.options.suggestionStartPos = suggestionStartPos
+    extension.options.onAccept = () => acceptCallbackRef.current?.()
+    extension.options.onReject = () => rejectCallbackRef.current?.()
+
+    // Force a view update to re-render decorations by dispatching an empty transaction
+    const { state, dispatch } = editor.view
+    const tr = state.tr.setMeta('addToHistory', false)
+    dispatch(tr)
+  }, [editor, suggestion, isGenerating, handleAccept, handleReject])
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    if (!editor) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (suggestion) {
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          handleAccept()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          handleReject()
+        }
+      }
+    }
+
+    const editorElement = editor.view.dom
+    editorElement.addEventListener('keydown', handleKeyDown)
+    return () => editorElement.removeEventListener('keydown', handleKeyDown)
+  }, [editor, suggestion, handleAccept, handleReject])
+
+  return (
+    <div className="relative w-full max-w-3xl mx-auto">
+      <div className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+        <EditorContent
+          editor={editor}
+          className="prose prose-sm max-w-none p-6 min-h-[400px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[360px]"
+        />
+      </div>
+
+      {/* Error display */}
+      {error && !isGenerating && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+    </div>
+  )
+}
