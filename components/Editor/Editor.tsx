@@ -6,7 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { useEffect, useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
-import { InlineSuggestion } from '@/extensions/inline-suggestion'
+import { InlineSuggestion, updateInlineSuggestionState } from '@/extensions/inline-suggestion'
 
 // Convert markdown to plain text (remove formatting)
 function markdownToPlainText(markdown: string): string {
@@ -33,13 +33,7 @@ export function Editor() {
         placeholder:
           'Describe your project... (e.g., "My project is a social media app for dog owners")',
       }),
-      InlineSuggestion.configure({
-        suggestion: null,
-        isGenerating: false,
-        suggestionStartPos: 0,
-        onAccept: () => acceptCallbackRef.current?.(),
-        onReject: () => rejectCallbackRef.current?.(),
-      }),
+      InlineSuggestion,
     ],
     content: '',
     immediatelyRender: false,
@@ -74,30 +68,25 @@ export function Editor() {
     rejectCallbackRef.current = handleReject
   }, [handleAccept, handleReject])
 
-  // Update the inline suggestion extension when suggestion state changes
+  // Update the inline suggestion state when suggestion/isGenerating changes
   useEffect(() => {
     if (!editor) return
-
-    const extension = editor.extensionManager.extensions.find(
-      (ext) => ext.name === 'inlineSuggestion'
-    )
-    if (!extension) return
 
     const plainTextSuggestion = suggestion ? markdownToPlainText(suggestion.content) : null
     const suggestionStartPos = suggestion ? suggestion.position : 0
 
-    // Update extension options
-    extension.options.suggestion = plainTextSuggestion
-    extension.options.isGenerating = isGenerating
-    extension.options.suggestionStartPos = suggestionStartPos
-    extension.options.onAccept = () => acceptCallbackRef.current?.()
-    extension.options.onReject = () => rejectCallbackRef.current?.()
+    // Update the external state that decorations read from
+    updateInlineSuggestionState({
+      suggestion: plainTextSuggestion,
+      isGenerating,
+      suggestionStartPos,
+      onAccept: () => acceptCallbackRef.current?.(),
+      onReject: () => rejectCallbackRef.current?.(),
+    })
 
-    // Force a view update to re-render decorations by dispatching an empty transaction
-    const { state, dispatch } = editor.view
-    const tr = state.tr.setMeta('addToHistory', false)
-    dispatch(tr)
-  }, [editor, suggestion, isGenerating, handleAccept, handleReject])
+    // Force a view update to re-render decorations
+    editor.view.dispatch(editor.state.tr.setMeta('forceUpdate', true))
+  }, [editor, suggestion, isGenerating])
 
   // Handle keyboard shortcuts
   useEffect(() => {
