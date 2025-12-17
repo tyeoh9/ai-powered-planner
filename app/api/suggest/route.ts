@@ -16,24 +16,29 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: anthropic(process.env.ANTHROPIC_API_MODEL ?? 'claude-haiku-4-5-20251001'),
-      system: `You are a planning assistant that helps generate tech stack suggestions for software projects.
-When given a project description, suggest an appropriate tech stack.
-Format your response as a concise markdown section.
-Only suggest technologies that are relevant to the described project.
-Keep suggestions brief and actionable.
-Do not include any preamble or explanation - just output the tech stack section directly.`,
-      prompt: `Based on this project description, suggest an appropriate tech stack:
+      system: `You are a planning assistant that helps improve project planning documents.
 
-"${content}"
+Your job is to suggest edits to the document. You can:
+- Add new content (like tech stack suggestions)
+- Modify existing content to improve it
+- Remove content that's no longer relevant
 
-Output a brief tech stack suggestion formatted exactly like this:
+IMPORTANT: Return the COMPLETE edited document, not just the changes.
 
-## Suggested Tech Stack
+Guidelines:
+- Keep the user's original intent and voice
+- Be concise and practical
+- If the document describes a project, you may suggest a tech stack
+- If tech stack already exists and project scope changes, update the tech stack accordingly
+- Write in plain text, no markdown formatting symbols
+- Use bullet points (•) for lists`,
+      prompt: `Here is the current document:
 
-- **Frontend**: [technology]
-- **Backend**: [technology]
-- **Database**: [technology]
-- **Key Libraries**: [libraries]`,
+"""
+${content}
+"""
+
+Suggest improvements or additions to this document. Return the complete edited version of the document.`,
     })
 
     return result.toTextStreamResponse()

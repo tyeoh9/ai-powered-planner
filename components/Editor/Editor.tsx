@@ -8,15 +8,6 @@ import { useEditorStore } from '@/store/editor-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
 import { InlineSuggestion, updateInlineSuggestionState } from '@/extensions/inline-suggestion'
 
-// Convert markdown to plain text (remove formatting)
-function markdownToPlainText(markdown: string): string {
-  return markdown
-    .replace(/^## /gm, '\n') // Remove ## but keep newline
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
-    .replace(/^- /gm, '• ') // Convert list markers to bullets
-    .trim()
-}
-
 export function Editor() {
   const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
     useEditorStore()
@@ -53,24 +44,28 @@ export function Editor() {
   })
 
   const handleAccept = useCallback(() => {
-    if (!editor) return
+    if (!editor || !suggestion) return
 
-    const content = acceptSuggestion()
-    if (content) {
-      // Block re-triggering until user manually types
-      blockUntilManualEdit()
+    // Block re-triggering until user manually types
+    blockUntilManualEdit()
 
-      // Mark that we're inserting suggestion (not manual edit)
-      isInsertingSuggestionRef.current = true
+    // Mark that we're inserting suggestion (not manual edit)
+    isInsertingSuggestionRef.current = true
 
-      // Insert as plain text
-      const plainText = markdownToPlainText(content)
-      editor.chain().focus().insertContent(plainText).run()
+    // Replace entire content with the new content from suggestion
+    editor
+      .chain()
+      .focus()
+      .clearContent()
+      .insertContent(suggestion.newContent)
+      .run()
 
-      // Reset the flag after insertion
-      isInsertingSuggestionRef.current = false
-    }
-  }, [editor, acceptSuggestion, blockUntilManualEdit])
+    // Clear the suggestion
+    acceptSuggestion()
+
+    // Reset the flag after insertion
+    isInsertingSuggestionRef.current = false
+  }, [editor, suggestion, acceptSuggestion, blockUntilManualEdit])
 
   const handleReject = useCallback(() => {
     // Block re-triggering until user manually types
@@ -89,14 +84,10 @@ export function Editor() {
   useEffect(() => {
     if (!editor) return
 
-    const plainTextSuggestion = suggestion ? markdownToPlainText(suggestion.content) : null
-    const suggestionStartPos = suggestion ? suggestion.position : 0
-
     // Update the external state that decorations read from
     updateInlineSuggestionState({
-      suggestion: plainTextSuggestion,
+      diff: suggestion?.diff || null,
       isGenerating,
-      suggestionStartPos,
       onAccept: () => acceptCallbackRef.current?.(),
       onReject: () => rejectCallbackRef.current?.(),
     })

@@ -2,41 +2,21 @@
 
 import { useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
+import { computeDiff, hasChanges } from '@/utils/diff'
 
-const DEBOUNCE_MS = 1000 // 1 second as requested
-const MIN_CONTENT_LENGTH = 20
-
-const TRIGGER_PATTERNS = [
-  /my project is/i,
-  /building a/i,
-  /creating a/i,
-  /i want to build/i,
-  /application for/i,
-  /app for/i,
-  /i(')?m making/i,
-  /we(')?re building/i,
-]
+const DEBOUNCE_MS = 1000
+const MIN_CONTENT_LENGTH = 10
 
 export function useSuggestion() {
-  const {
-    setSuggestion,
-    setIsGenerating,
-    isGenerating,
-    setError,
-  } = useEditorStore()
+  const { setSuggestion, setIsGenerating, isGenerating, setError } = useEditorStore()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Block suggestions until user manually types
   const blockedUntilManualEditRef = useRef<boolean>(false)
 
-  const shouldTriggerSuggestion = (content: string): boolean => {
-    if (content.length < MIN_CONTENT_LENGTH) return false
-    return TRIGGER_PATTERNS.some((pattern) => pattern.test(content))
-  }
-
   const fetchSuggestion = useCallback(
-    async (content: string, position: number) => {
+    async (content: string) => {
       if (isGenerating) return
 
       if (abortControllerRef.current) {
@@ -62,7 +42,7 @@ export function useSuggestion() {
 
         const reader = response.body?.getReader()
         const decoder = new TextDecoder()
-        let fullText = ''
+        let newContent = ''
 
         if (reader) {
           while (true) {
@@ -70,17 +50,29 @@ export function useSuggestion() {
             if (done) break
 
             const chunk = decoder.decode(value)
-            fullText += chunk
+            newContent += chunk
           }
         }
 
-        if (fullText.trim()) {
-          setSuggestion({
-            id: crypto.randomUUID(),
-            content: '\n\n' + fullText.trim(),
-            position,
-            type: 'tech-stack',
-          })
+        newContent = newContent.trim()
+
+        if (newContent) {
+          // Compute diff between original and new content
+          const diff = computeDiff(content, newContent)
+
+          // Only create suggestion if there are actual changes
+          if (hasChanges(diff)) {
+            setSuggestion({
+              id: crypto.randomUUID(),
+              originalContent: content,
+              newContent,
+              diff,
+              type: 'edit',
+            })
+          } else {
+            // No changes needed
+            setSuggestion(null)
+          }
         } else {
           setError('No suggestion generated')
         }
@@ -97,7 +89,7 @@ export function useSuggestion() {
   )
 
   const triggerSuggestion = useCallback(
-    (content: string, position: number, isManualEdit: boolean = true) => {
+    (content: string, _position: number, isManualEdit: boolean = true) => {
       // Clear any pending debounce
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
@@ -106,24 +98,22 @@ export function useSuggestion() {
       // If blocked, only unblock on manual edits
       if (blockedUntilManualEditRef.current) {
         if (isManualEdit) {
-          // User manually typed - unblock
           blockedUntilManualEditRef.current = false
         } else {
-          // This is from accepting a suggestion - stay blocked
           return
         }
       }
 
-      if (!shouldTriggerSuggestion(content)) return
+      // Need some minimum content
+      if (content.length < MIN_CONTENT_LENGTH) return
 
       debounceRef.current = setTimeout(() => {
-        fetchSuggestion(content, position)
+        fetchSuggestion(content)
       }, DEBOUNCE_MS)
     },
     [fetchSuggestion]
   )
 
-  // Call this after accepting/rejecting to block until manual edit
   const blockUntilManualEdit = useCallback(() => {
     blockedUntilManualEditRef.current = true
   }, [])

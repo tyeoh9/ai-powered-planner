@@ -1,8 +1,14 @@
+export interface DiffSegment {
+  type: 'unchanged' | 'added' | 'removed'
+  text: string
+}
+
 export interface Suggestion {
   id: string
-  content: string
-  position: number
-  type: 'tech-stack'
+  originalContent: string
+  newContent: string
+  diff: DiffSegment[]
+  type: 'edit'
 }
 
 export interface EditorState {

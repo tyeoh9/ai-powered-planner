@@ -19,11 +19,11 @@ interface EditorState {
   setError: (error: string | null) => void
 
   // Actions
-  acceptSuggestion: () => string | null
+  acceptSuggestion: () => void
   rejectSuggestion: () => void
 }
 
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   content: '',
   setContent: (content) => set({ content }),
 
@@ -37,12 +37,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setError: (error) => set({ error, isGenerating: false }),
 
   acceptSuggestion: () => {
-    const { suggestion } = get()
-    if (suggestion) {
-      set({ suggestion: null })
-      return suggestion.content
-    }
-    return null
+    set({ suggestion: null })
   },
 
   rejectSuggestion: () => {

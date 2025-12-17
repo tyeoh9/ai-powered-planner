@@ -32,145 +32,19 @@ body {
   pointer-events: none;
 }
 
-/* ===== Ghost Thinking Indicator (inline "...") ===== */
-.ghost-thinking {
-  color: #9ca3af;
-  animation: blink 1s ease-in-out infinite;
-}
-
-@keyframes blink {
-  0%, 50% {
-    opacity: 1;
-  }
-  51%, 100% {
-    opacity: 0.3;
-  }
-}
-
-/* ===== Ghost Text Suggestion (like code completion) ===== */
-.ghost-suggestion-container {
-  display: inline;
-}
-
-.ghost-text-content {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
-  white-space: pre-wrap;
-}
-
-.ghost-hint {
-  display: inline-block;
-  margin-left: 12px;
-  padding: 2px 8px;
-  background: #f3f4f6;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #6b7280;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.ghost-hint kbd {
-  display: inline-block;
-  padding: 1px 4px;
-  margin: 0 2px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 10px;
-}
-
-/* ===== Inline Suggestion Extension Styles ===== */
-.inline-suggestion-container {
-  display: inline-block;
-  position: relative;
-}
-
-.inline-suggestion-text {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
-  white-space: pre-wrap;
-  display: inline;
-}
-
-.inline-suggestion-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
-.suggestion-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  border-radius: 4px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.suggestion-btn:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.suggestion-btn-accept {
-  border-color: #22c55e;
-  color: #16a34a;
-}
-
-.suggestion-btn-accept:hover {
-  background: #dcfce7;
-}
-
-.suggestion-btn-reject {
-  border-color: #ef4444;
-  color: #dc2626;
-}
-
-.suggestion-btn-reject:hover {
-  background: #fee2e2;
-}
-
-.suggestion-btn kbd {
-  display: inline-block;
-  padding: 1px 4px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.suggestion-heading {
-  font-weight: 600;
-  display: block;
-  margin-top: 4px;
-}
-
-.suggestion-list-item {
-  display: block;
-  margin-left: 8px;
-}
-
-/* Thinking indicator */
+/* ===== Thinking Indicator ===== */
 .inline-thinking-indicator {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #9ca3af;
-  margin-left: 4px;
+  color: #6b7280;
+  font-size: 14px;
+  margin-left: 8px;
 }
 
 .thinking-dot {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #9ca3af;
   animation: thinking-pulse 1.4s ease-in-out infinite;
@@ -184,8 +58,15 @@ body {
   animation-delay: 0.4s;
 }
 
+.thinking-text {
+  margin-left: 8px;
+  color: #6b7280;
+}
+
 @keyframes thinking-pulse {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: scale(0.8);
   }
@@ -193,4 +74,89 @@ body {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* ===== Hide original content when showing diff ===== */
+.original-content-hidden {
+  display: none !important;
+}
+
+/* ===== Diff Preview ===== */
+.diff-preview-container {
+  position: relative;
+}
+
+.diff-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.diff-segment {
+  /* Base styles for all segments */
+}
+
+.diff-unchanged {
+  color: inherit;
+}
+
+.diff-added {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #166534;
+  text-decoration: none;
+}
+
+.diff-removed {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+  text-decoration: line-through;
+}
+
+.diff-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.diff-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.diff-btn kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.diff-btn-accept {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.diff-btn-accept:hover {
+  background: #bbf7d0;
+}
+
+.diff-btn-reject {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.diff-btn-reject:hover {
+  background: #fecaca;
 }
