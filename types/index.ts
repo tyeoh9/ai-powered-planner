@@ -10,9 +10,3 @@ export interface Suggestion {
   diff: DiffSegment[]
   type: 'edit'
 }
-
-export interface EditorState {
-  content: string
-  suggestion: Suggestion | null
-  isGenerating: boolean
-}

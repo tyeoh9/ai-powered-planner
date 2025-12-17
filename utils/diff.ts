@@ -1,118 +1,153 @@
 import { DiffSegment } from '@/types'
 
 /**
- * Simple word-level diff algorithm
- * Computes the differences between two strings
+ * Computes word-level differences between two strings using the
+ * Longest Common Subsequence (LCS) algorithm
  */
 export function computeDiff(original: string, modified: string): DiffSegment[] {
-  const originalWords = tokenize(original)
-  const modifiedWords = tokenize(modified)
+  const originalTokens = tokenizeText(original)
+  const modifiedTokens = tokenizeText(modified)
+  const commonSequence = findLongestCommonSubsequence(originalTokens, modifiedTokens)
 
-  // Use Longest Common Subsequence to find matches
-  const lcs = computeLCS(originalWords, modifiedWords)
-
-  const segments: DiffSegment[] = []
-  let origIdx = 0
-  let modIdx = 0
-  let lcsIdx = 0
-
-  while (origIdx < originalWords.length || modIdx < modifiedWords.length) {
-    // Check if current positions match LCS
-    const origMatchesLCS =
-      lcsIdx < lcs.length && origIdx < originalWords.length && originalWords[origIdx] === lcs[lcsIdx]
-    const modMatchesLCS =
-      lcsIdx < lcs.length && modIdx < modifiedWords.length && modifiedWords[modIdx] === lcs[lcsIdx]
-
-    if (origMatchesLCS && modMatchesLCS) {
-      // Both match - unchanged
-      addSegment(segments, 'unchanged', originalWords[origIdx])
-      origIdx++
-      modIdx++
-      lcsIdx++
-    } else if (!origMatchesLCS && origIdx < originalWords.length) {
-      // Original doesn't match - it was removed
-      addSegment(segments, 'removed', originalWords[origIdx])
-      origIdx++
-    } else if (!modMatchesLCS && modIdx < modifiedWords.length) {
-      // Modified doesn't match - it was added
-      addSegment(segments, 'added', modifiedWords[modIdx])
-      modIdx++
-    } else {
-      // Edge case - just advance
-      if (origIdx < originalWords.length) {
-        addSegment(segments, 'removed', originalWords[origIdx])
-        origIdx++
-      }
-      if (modIdx < modifiedWords.length) {
-        addSegment(segments, 'added', modifiedWords[modIdx])
-        modIdx++
-      }
-    }
-  }
-
-  return mergeSegments(segments)
+  const segments = buildDiffSegments(originalTokens, modifiedTokens, commonSequence)
+  return mergeAdjacentSegments(segments)
 }
 
 /**
- * Tokenize string into words while preserving whitespace
+ * Builds diff segments by comparing original and modified tokens against
+ * their longest common subsequence
  */
-function tokenize(text: string): string[] {
-  const tokens: string[] = []
-  let current = ''
+function buildDiffSegments(
+  originalTokens: string[],
+  modifiedTokens: string[],
+  commonSequence: string[]
+): DiffSegment[] {
+  const segments: DiffSegment[] = []
+  let originalIndex = 0
+  let modifiedIndex = 0
+  let commonIndex = 0
 
-  for (const char of text) {
-    if (char === ' ' || char === '\n' || char === '\t') {
-      if (current) {
-        tokens.push(current)
-        current = ''
-      }
-      tokens.push(char)
+  while (originalIndex < originalTokens.length || modifiedIndex < modifiedTokens.length) {
+    const originalMatchesCommon =
+      commonIndex < commonSequence.length &&
+      originalIndex < originalTokens.length &&
+      originalTokens[originalIndex] === commonSequence[commonIndex]
+
+    const modifiedMatchesCommon =
+      commonIndex < commonSequence.length &&
+      modifiedIndex < modifiedTokens.length &&
+      modifiedTokens[modifiedIndex] === commonSequence[commonIndex]
+
+    if (originalMatchesCommon && modifiedMatchesCommon) {
+      // Both match the common sequence - text is unchanged
+      appendSegment(segments, 'unchanged', originalTokens[originalIndex])
+      originalIndex++
+      modifiedIndex++
+      commonIndex++
+    } else if (!originalMatchesCommon && originalIndex < originalTokens.length) {
+      // Original token doesn't match - it was removed
+      appendSegment(segments, 'removed', originalTokens[originalIndex])
+      originalIndex++
+    } else if (!modifiedMatchesCommon && modifiedIndex < modifiedTokens.length) {
+      // Modified token doesn't match - it was added
+      appendSegment(segments, 'added', modifiedTokens[modifiedIndex])
+      modifiedIndex++
     } else {
-      current += char
+      // Edge case: advance both indices
+      if (originalIndex < originalTokens.length) {
+        appendSegment(segments, 'removed', originalTokens[originalIndex])
+        originalIndex++
+      }
+      if (modifiedIndex < modifiedTokens.length) {
+        appendSegment(segments, 'added', modifiedTokens[modifiedIndex])
+        modifiedIndex++
+      }
     }
   }
 
-  if (current) {
-    tokens.push(current)
+  return segments
+}
+
+/**
+ * Splits text into tokens (words and whitespace characters)
+ * Preserves whitespace for accurate diff reconstruction
+ */
+function tokenizeText(text: string): string[] {
+  const tokens: string[] = []
+  let currentWord = ''
+  const whitespaceChars = new Set([' ', '\n', '\t'])
+
+  for (const char of text) {
+    if (whitespaceChars.has(char)) {
+      if (currentWord) {
+        tokens.push(currentWord)
+        currentWord = ''
+      }
+      tokens.push(char)
+    } else {
+      currentWord += char
+    }
+  }
+
+  if (currentWord) {
+    tokens.push(currentWord)
   }
 
   return tokens
 }
 
 /**
- * Compute Longest Common Subsequence
+ * Finds the longest common subsequence between two token arrays
+ * using dynamic programming
  */
-function computeLCS(a: string[], b: string[]): string[] {
-  const m = a.length
-  const n = b.length
+function findLongestCommonSubsequence(tokensA: string[], tokensB: string[]): string[] {
+  const lengthA = tokensA.length
+  const lengthB = tokensB.length
 
-  // Create DP table
-  const dp: number[][] = Array(m + 1)
+  // Build dynamic programming table
+  const dpTable = createLCSTable(tokensA, tokensB)
+
+  // Backtrack through table to reconstruct the LCS
+  return backtrackLCS(tokensA, tokensB, dpTable)
+}
+
+/**
+ * Creates the dynamic programming table for LCS computation
+ */
+function createLCSTable(tokensA: string[], tokensB: string[]): number[][] {
+  const lengthA = tokensA.length
+  const lengthB = tokensB.length
+  const table: number[][] = Array(lengthA + 1)
     .fill(null)
-    .map(() => Array(n + 1).fill(0))
+    .map(() => Array(lengthB + 1).fill(0))
 
-  // Fill DP table
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (a[i - 1] === b[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1
+  for (let i = 1; i <= lengthA; i++) {
+    for (let j = 1; j <= lengthB; j++) {
+      if (tokensA[i - 1] === tokensB[j - 1]) {
+        table[i][j] = table[i - 1][j - 1] + 1
       } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+        table[i][j] = Math.max(table[i - 1][j], table[i][j - 1])
       }
     }
   }
 
-  // Backtrack to find LCS
+  return table
+}
+
+/**
+ * Reconstructs the LCS by backtracking through the DP table
+ */
+function backtrackLCS(tokensA: string[], tokensB: string[], dpTable: number[][]): string[] {
   const lcs: string[] = []
-  let i = m
-  let j = n
+  let i = tokensA.length
+  let j = tokensB.length
 
   while (i > 0 && j > 0) {
-    if (a[i - 1] === b[j - 1]) {
-      lcs.unshift(a[i - 1])
+    if (tokensA[i - 1] === tokensB[j - 1]) {
+      lcs.unshift(tokensA[i - 1])
       i--
       j--
-    } else if (dp[i - 1][j] > dp[i][j - 1]) {
+    } else if (dpTable[i - 1][j] > dpTable[i][j - 1]) {
       i--
     } else {
       j--
@@ -123,33 +158,37 @@ function computeLCS(a: string[], b: string[]): string[] {
 }
 
 /**
- * Add a segment, merging with previous if same type
+ * Appends a segment to the array, merging with the previous segment
+ * if it has the same type
  */
-function addSegment(segments: DiffSegment[], type: DiffSegment['type'], text: string) {
-  const last = segments[segments.length - 1]
-  if (last && last.type === type) {
-    last.text += text
+function appendSegment(segments: DiffSegment[], type: DiffSegment['type'], text: string): void {
+  const lastSegment = segments[segments.length - 1]
+
+  if (lastSegment && lastSegment.type === type) {
+    lastSegment.text += text
   } else {
     segments.push({ type, text })
   }
 }
 
 /**
- * Merge adjacent segments of the same type
+ * Merges adjacent segments of the same type to reduce redundancy
  */
-function mergeSegments(segments: DiffSegment[]): DiffSegment[] {
-  if (segments.length === 0) return segments
+function mergeAdjacentSegments(segments: DiffSegment[]): DiffSegment[] {
+  if (segments.length === 0) {
+    return segments
+  }
 
   const merged: DiffSegment[] = [segments[0]]
 
   for (let i = 1; i < segments.length; i++) {
-    const last = merged[merged.length - 1]
-    const current = segments[i]
+    const lastMerged = merged[merged.length - 1]
+    const currentSegment = segments[i]
 
-    if (last.type === current.type) {
-      last.text += current.text
+    if (lastMerged.type === currentSegment.type) {
+      lastMerged.text += currentSegment.text
     } else {
-      merged.push(current)
+      merged.push(currentSegment)
     }
   }
 
@@ -157,8 +196,8 @@ function mergeSegments(segments: DiffSegment[]): DiffSegment[] {
 }
 
 /**
- * Check if there are any actual changes in the diff
+ * Checks if the diff contains any actual changes (additions or removals)
  */
 export function hasChanges(diff: DiffSegment[]): boolean {
-  return diff.some((seg) => seg.type !== 'unchanged')
+  return diff.some((segment) => segment.type !== 'unchanged')
 }

@@ -3,27 +3,56 @@
 import { useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { computeDiff, hasChanges } from '@/utils/diff'
+import { SUGGESTION_DEBOUNCE_MS, MIN_CONTENT_LENGTH_FOR_SUGGESTION } from '@/lib/constants'
 
-const DEBOUNCE_MS = 1000
-const MIN_CONTENT_LENGTH = 10
+/**
+ * Reads the complete response from a streaming API
+ */
+async function readStreamResponse(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<string> {
+  const decoder = new TextDecoder()
+  let content = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    content += decoder.decode(value)
+  }
+
+  return content.trim()
+}
+
+/**
+ * Handles errors from suggestion fetching
+ */
+function handleSuggestionError(error: unknown): void {
+  if ((error as Error).name === 'AbortError') {
+    return
+  }
+
+  console.error('Suggestion error:', error)
+  const message = error instanceof Error ? error.message : 'Failed to generate suggestion'
+  useEditorStore.getState().setError(message)
+}
 
 export function useSuggestion() {
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-  const blockedUntilManualEditRef = useRef<boolean>(false)
-  const isGeneratingRef = useRef(false)
+  const shouldBlockAutoTriggerRef = useRef<boolean>(false)
+  const isCurrentlyGeneratingRef = useRef(false)
 
   const fetchSuggestion = useCallback(async (content: string) => {
-    if (isGeneratingRef.current) return
+    if (isCurrentlyGeneratingRef.current) {
+      return
+    }
 
+    // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
 
     abortControllerRef.current = new AbortController()
-    isGeneratingRef.current = true
+    isCurrentlyGeneratingRef.current = true
 
-    // Use getState() to directly update store
     const store = useEditorStore.getState()
     store.setIsGenerating(true)
     store.setError(null)
@@ -42,86 +71,82 @@ export function useSuggestion() {
       }
 
       const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let newContent = ''
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          const chunk = decoder.decode(value)
-          newContent += chunk
-        }
+      if (!reader) {
+        throw new Error('No response body received')
       }
 
-      newContent = newContent.trim()
+      const newContent = await readStreamResponse(reader)
 
-      if (newContent) {
-        const diff = computeDiff(content, newContent)
+      if (!newContent) {
+        store.setError('No suggestion generated')
+        return
+      }
 
-        if (hasChanges(diff)) {
-          useEditorStore.getState().setSuggestion({
-            id: crypto.randomUUID(),
-            originalContent: content,
-            newContent,
-            diff,
-            type: 'edit',
-          })
-        } else {
-          useEditorStore.getState().setSuggestion(null)
-        }
+      const diff = computeDiff(content, newContent)
+
+      if (hasChanges(diff)) {
+        store.setSuggestion({
+          id: crypto.randomUUID(),
+          originalContent: content,
+          newContent,
+          diff,
+          type: 'edit',
+        })
       } else {
-        useEditorStore.getState().setError('No suggestion generated')
+        store.setSuggestion(null)
       }
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Suggestion error:', error)
-        useEditorStore.getState().setError((error as Error).message || 'Failed to generate suggestion')
-      }
+      handleSuggestionError(error)
     } finally {
-      isGeneratingRef.current = false
-      useEditorStore.getState().setIsGenerating(false)
+      isCurrentlyGeneratingRef.current = false
+      store.setIsGenerating(false)
     }
   }, [])
 
   const triggerSuggestion = useCallback(
     (content: string, _position: number, isManualEdit: boolean = true) => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+      // Clear any existing debounce timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
       }
 
-      if (blockedUntilManualEditRef.current) {
+      // Check if auto-trigger is blocked (after accepting/rejecting a suggestion)
+      if (shouldBlockAutoTriggerRef.current) {
         if (isManualEdit) {
-          blockedUntilManualEditRef.current = false
+          shouldBlockAutoTriggerRef.current = false
         } else {
           return
         }
       }
 
-      if (content.length < MIN_CONTENT_LENGTH) {
+      // Don't suggest for content that's too short
+      if (content.length < MIN_CONTENT_LENGTH_FOR_SUGGESTION) {
         return
       }
 
-      debounceRef.current = setTimeout(() => {
+      // Debounce the suggestion fetch
+      debounceTimerRef.current = setTimeout(() => {
         fetchSuggestion(content)
-      }, DEBOUNCE_MS)
+      }, SUGGESTION_DEBOUNCE_MS)
     },
     [fetchSuggestion]
   )
 
   const blockUntilManualEdit = useCallback(() => {
-    blockedUntilManualEditRef.current = true
+    shouldBlockAutoTriggerRef.current = true
   }, [])
 
   const cancelSuggestion = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
     }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    useEditorStore.getState().setSuggestion(null)
-    useEditorStore.getState().setIsGenerating(false)
+
+    const store = useEditorStore.getState()
+    store.setSuggestion(null)
+    store.setIsGenerating(false)
   }, [])
 
   return { triggerSuggestion, cancelSuggestion, blockUntilManualEdit }
