@@ -34,7 +34,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setIsGenerating: (isGenerating) => set({ isGenerating }),
 
   error: null,
-  setError: (error) => set({ error, isGenerating: false }),
+  setError: (error) => set({ error }),
 
   acceptSuggestion: () => {
     set({ suggestion: null })

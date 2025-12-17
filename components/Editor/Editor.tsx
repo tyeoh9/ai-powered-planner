@@ -6,12 +6,15 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { useEffect, useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
-import { InlineSuggestion, updateInlineSuggestionState } from '@/extensions/inline-suggestion'
 import { DiffPreview } from './DiffPreview'
 
 export function Editor() {
-  const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
-    useEditorStore()
+  const setContent = useEditorStore((state) => state.setContent)
+  const suggestion = useEditorStore((state) => state.suggestion)
+  const acceptSuggestion = useEditorStore((state) => state.acceptSuggestion)
+  const rejectSuggestion = useEditorStore((state) => state.rejectSuggestion)
+  const isGenerating = useEditorStore((state) => state.isGenerating)
+  const error = useEditorStore((state) => state.error)
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
 
   // Track if we're inserting suggestion text (not manual edit)
@@ -24,7 +27,6 @@ export function Editor() {
         placeholder:
           'Describe your project... (e.g., "My project is a social media app for dog owners")',
       }),
-      InlineSuggestion,
     ],
     content: '',
     immediatelyRender: false,
@@ -66,18 +68,6 @@ export function Editor() {
     cancelSuggestion()
   }, [rejectSuggestion, cancelSuggestion, blockUntilManualEdit])
 
-  // Update the inline suggestion state when isGenerating changes (for thinking indicator only)
-  useEffect(() => {
-    if (!editor) return
-
-    updateInlineSuggestionState({
-      isGenerating,
-    })
-
-    // Force a view update to re-render decorations
-    editor.view.dispatch(editor.state.tr.setMeta('forceUpdate', true))
-  }, [editor, isGenerating])
-
   // Handle keyboard shortcuts (global listener for when diff is showing)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -101,7 +91,7 @@ export function Editor() {
 
   return (
     <div className="relative w-full max-w-3xl mx-auto">
-      <div className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+      <div className="relative border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
         {/* Show diff preview when we have a suggestion */}
         {showingDiff && (
           <DiffPreview diff={suggestion.diff} onAccept={handleAccept} onReject={handleReject} />
@@ -114,6 +104,18 @@ export function Editor() {
             className="prose prose-sm max-w-none p-6 min-h-[400px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[360px]"
           />
         </div>
+
+        {/* Thinking indicator in bottom right */}
+        {isGenerating && (
+          <div className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-blue-100 border border-blue-300 rounded-lg text-blue-700 text-sm shadow-md">
+            <span className="thinking-dots">
+              <span className="thinking-dot" />
+              <span className="thinking-dot" />
+              <span className="thinking-dot" />
+            </span>
+            <span>AI is thinking...</span>
+          </div>
+        )}
       </div>
 
       {/* Error display */}

@@ -33,20 +33,17 @@ body {
 }
 
 /* ===== Thinking Indicator ===== */
-.inline-thinking-indicator {
+.thinking-dots {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #6b7280;
-  font-size: 14px;
-  margin-left: 8px;
 }
 
 .thinking-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #9ca3af;
+  background: #6b7280;
   animation: thinking-pulse 1.4s ease-in-out infinite;
 }
 
@@ -56,11 +53,6 @@ body {
 
 .thinking-dot:nth-child(3) {
   animation-delay: 0.4s;
-}
-
-.thinking-text {
-  margin-left: 8px;
-  color: #6b7280;
 }
 
 @keyframes thinking-pulse {
