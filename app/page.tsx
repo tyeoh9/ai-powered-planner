@@ -7,7 +7,7 @@ export default function Home() {
         <header className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Planning Editor</h1>
           <p className="text-gray-600">
-            Start describing your project and get AI-powered tech stack suggestions
+            Start describing your project and get AI-powered suggestions
           </p>
         </header>
 
