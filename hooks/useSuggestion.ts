@@ -23,12 +23,12 @@ export function useSuggestion() {
     setIsGenerating,
     isGenerating,
     setError,
-    justAccepted,
-    setJustAccepted,
   } = useEditorStore()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-  const lastContentRef = useRef<string>('')
+
+  // Block suggestions until user manually types
+  const blockedUntilManualEditRef = useRef<boolean>(false)
 
   const shouldTriggerSuggestion = (content: string): boolean => {
     if (content.length < MIN_CONTENT_LENGTH) return false
@@ -97,25 +97,22 @@ export function useSuggestion() {
   )
 
   const triggerSuggestion = useCallback(
-    (content: string, position: number) => {
+    (content: string, position: number, isManualEdit: boolean = true) => {
       // Clear any pending debounce
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
       }
 
-      // If we just accepted a suggestion, don't re-trigger
-      // Reset the flag when the user actually types new content
-      if (justAccepted) {
-        // Check if user is typing new content (not just the accepted text being registered)
-        if (content !== lastContentRef.current) {
-          // User typed something new, reset the flag
-          setJustAccepted(false)
+      // If blocked, only unblock on manual edits
+      if (blockedUntilManualEditRef.current) {
+        if (isManualEdit) {
+          // User manually typed - unblock
+          blockedUntilManualEditRef.current = false
+        } else {
+          // This is from accepting a suggestion - stay blocked
+          return
         }
-        lastContentRef.current = content
-        return
       }
-
-      lastContentRef.current = content
 
       if (!shouldTriggerSuggestion(content)) return
 
@@ -123,8 +120,13 @@ export function useSuggestion() {
         fetchSuggestion(content, position)
       }, DEBOUNCE_MS)
     },
-    [fetchSuggestion, justAccepted, setJustAccepted]
+    [fetchSuggestion]
   )
+
+  // Call this after accepting/rejecting to block until manual edit
+  const blockUntilManualEdit = useCallback(() => {
+    blockedUntilManualEditRef.current = true
+  }, [])
 
   const cancelSuggestion = useCallback(() => {
     if (debounceRef.current) {
@@ -137,5 +139,5 @@ export function useSuggestion() {
     setIsGenerating(false)
   }, [setSuggestion, setIsGenerating])
 
-  return { triggerSuggestion, cancelSuggestion }
+  return { triggerSuggestion, cancelSuggestion, blockUntilManualEdit }
 }

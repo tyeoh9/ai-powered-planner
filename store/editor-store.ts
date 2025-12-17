@@ -10,10 +10,6 @@ interface EditorState {
   suggestion: Suggestion | null
   setSuggestion: (suggestion: Suggestion | null) => void
 
-  // Flag to prevent re-triggering after accept
-  justAccepted: boolean
-  setJustAccepted: (justAccepted: boolean) => void
-
   // Loading state
   isGenerating: boolean
   setIsGenerating: (isGenerating: boolean) => void
@@ -34,9 +30,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   suggestion: null,
   setSuggestion: (suggestion) => set({ suggestion, error: null }),
 
-  justAccepted: false,
-  setJustAccepted: (justAccepted) => set({ justAccepted }),
-
   isGenerating: false,
   setIsGenerating: (isGenerating) => set({ isGenerating }),
 
@@ -46,10 +39,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   acceptSuggestion: () => {
     const { suggestion } = get()
     if (suggestion) {
-      set({
-        suggestion: null,
-        justAccepted: true, // Prevent re-triggering
-      })
+      set({ suggestion: null })
       return suggestion.content
     }
     return null

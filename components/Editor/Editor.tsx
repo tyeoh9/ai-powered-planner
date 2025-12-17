@@ -20,7 +20,10 @@ function markdownToPlainText(markdown: string): string {
 export function Editor() {
   const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
     useEditorStore()
-  const { triggerSuggestion, cancelSuggestion } = useSuggestion()
+  const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
+
+  // Track if we're inserting suggestion text (not manual edit)
+  const isInsertingSuggestionRef = useRef(false)
 
   // Use refs for callbacks so they can be updated
   const acceptCallbackRef = useRef<(() => void) | undefined>(undefined)
@@ -42,7 +45,10 @@ export function Editor() {
       setContent(newContent)
 
       const docSize = editor.state.doc.content.size
-      triggerSuggestion(newContent, docSize)
+
+      // Pass whether this is a manual edit or not
+      const isManualEdit = !isInsertingSuggestionRef.current
+      triggerSuggestion(newContent, docSize, isManualEdit)
     },
   })
 
@@ -51,16 +57,27 @@ export function Editor() {
 
     const content = acceptSuggestion()
     if (content) {
+      // Block re-triggering until user manually types
+      blockUntilManualEdit()
+
+      // Mark that we're inserting suggestion (not manual edit)
+      isInsertingSuggestionRef.current = true
+
       // Insert as plain text
       const plainText = markdownToPlainText(content)
       editor.chain().focus().insertContent(plainText).run()
+
+      // Reset the flag after insertion
+      isInsertingSuggestionRef.current = false
     }
-  }, [editor, acceptSuggestion])
+  }, [editor, acceptSuggestion, blockUntilManualEdit])
 
   const handleReject = useCallback(() => {
+    // Block re-triggering until user manually types
+    blockUntilManualEdit()
     rejectSuggestion()
     cancelSuggestion()
-  }, [rejectSuggestion, cancelSuggestion])
+  }, [rejectSuggestion, cancelSuggestion, blockUntilManualEdit])
 
   // Update callback refs
   useEffect(() => {
