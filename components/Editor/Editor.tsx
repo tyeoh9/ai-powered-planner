@@ -7,6 +7,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
 import { InlineSuggestion, updateInlineSuggestionState } from '@/extensions/inline-suggestion'
+import { DiffPreview } from './DiffPreview'
 
 export function Editor() {
   const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
@@ -15,10 +16,6 @@ export function Editor() {
 
   // Track if we're inserting suggestion text (not manual edit)
   const isInsertingSuggestionRef = useRef(false)
-
-  // Use refs for callbacks so they can be updated
-  const acceptCallbackRef = useRef<(() => void) | undefined>(undefined)
-  const rejectCallbackRef = useRef<(() => void) | undefined>(undefined)
 
   const editor = useEditor({
     extensions: [
@@ -53,12 +50,7 @@ export function Editor() {
     isInsertingSuggestionRef.current = true
 
     // Replace entire content with the new content from suggestion
-    editor
-      .chain()
-      .focus()
-      .clearContent()
-      .insertContent(suggestion.newContent)
-      .run()
+    editor.chain().focus().clearContent().insertContent(suggestion.newContent).run()
 
     // Clear the suggestion
     acceptSuggestion()
@@ -74,32 +66,20 @@ export function Editor() {
     cancelSuggestion()
   }, [rejectSuggestion, cancelSuggestion, blockUntilManualEdit])
 
-  // Update callback refs
-  useEffect(() => {
-    acceptCallbackRef.current = handleAccept
-    rejectCallbackRef.current = handleReject
-  }, [handleAccept, handleReject])
-
-  // Update the inline suggestion state when suggestion/isGenerating changes
+  // Update the inline suggestion state when isGenerating changes (for thinking indicator only)
   useEffect(() => {
     if (!editor) return
 
-    // Update the external state that decorations read from
     updateInlineSuggestionState({
-      diff: suggestion?.diff || null,
       isGenerating,
-      onAccept: () => acceptCallbackRef.current?.(),
-      onReject: () => rejectCallbackRef.current?.(),
     })
 
     // Force a view update to re-render decorations
     editor.view.dispatch(editor.state.tr.setMeta('forceUpdate', true))
-  }, [editor, suggestion, isGenerating])
+  }, [editor, isGenerating])
 
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts (global listener for when diff is showing)
   useEffect(() => {
-    if (!editor) return
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (suggestion) {
         if (e.key === 'Tab') {
@@ -112,18 +92,28 @@ export function Editor() {
       }
     }
 
-    const editorElement = editor.view.dom
-    editorElement.addEventListener('keydown', handleKeyDown)
-    return () => editorElement.removeEventListener('keydown', handleKeyDown)
-  }, [editor, suggestion, handleAccept, handleReject])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [suggestion, handleAccept, handleReject])
+
+  // Determine if we're showing a diff (to hide original content)
+  const showingDiff = suggestion && suggestion.diff && suggestion.diff.length > 0
 
   return (
     <div className="relative w-full max-w-3xl mx-auto">
       <div className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
-        <EditorContent
-          editor={editor}
-          className="prose prose-sm max-w-none p-6 min-h-[400px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[360px]"
-        />
+        {/* Show diff preview when we have a suggestion */}
+        {showingDiff && (
+          <DiffPreview diff={suggestion.diff} onAccept={handleAccept} onReject={handleReject} />
+        )}
+
+        {/* Hide editor when showing diff */}
+        <div className={showingDiff ? 'hidden' : ''}>
+          <EditorContent
+            editor={editor}
+            className="prose prose-sm max-w-none p-6 min-h-[400px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[360px]"
+          />
+        </div>
       </div>
 
       {/* Error display */}

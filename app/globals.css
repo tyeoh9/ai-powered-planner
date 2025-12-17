@@ -76,11 +76,6 @@ body {
   }
 }
 
-/* ===== Hide original content when showing diff ===== */
-.original-content-hidden {
-  display: none !important;
-}
-
 /* ===== Diff Preview ===== */
 .diff-preview-container {
   position: relative;

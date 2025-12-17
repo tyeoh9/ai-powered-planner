@@ -16,6 +16,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: anthropic(process.env.ANTHROPIC_API_MODEL ?? 'claude-haiku-4-5-20251001'),
+      maxOutputTokens: 80,
       system: `You are a planning assistant that helps improve project planning documents.
 
 Your job is to suggest edits to the document. You can:
