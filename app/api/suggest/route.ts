@@ -44,10 +44,15 @@ export async function POST(req: Request) {
       model: anthropic(getAiModel()),
       system: PLANNING_ASSISTANT_SYSTEM_PROMPT,
       prompt: generateImprovementPrompt(content),
+      abortSignal: req.signal,
     })
 
     return result.toTextStreamResponse()
   } catch (error) {
+    // Silently ignore aborted requests (user interrupted)
+    if (error instanceof Error && error.name === 'AbortError') {
+      return new Response(null, { status: 499 })
+    }
     console.error('API Error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return createErrorResponse(message)

@@ -91,6 +91,14 @@ export function useSuggestion() {
 
   const triggerSuggestion = useCallback(
     (content: string, _position: number, isManualEdit: boolean = true) => {
+      // Abort any in-flight request immediately when user types
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+        isCurrentlyGeneratingRef.current = false
+        useEditorStore.getState().setIsGenerating(false)
+      }
+
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
       const store = useEditorStore.getState()

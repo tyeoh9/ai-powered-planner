@@ -3,7 +3,7 @@
  */
 
 // Suggestion generation settings
-export const SUGGESTION_DEBOUNCE_MS = 1000
+export const SUGGESTION_DEBOUNCE_MS = 500
 export const MIN_CONTENT_LENGTH_FOR_SUGGESTION = 10
 
 // API configuration
