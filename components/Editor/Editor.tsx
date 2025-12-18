@@ -20,7 +20,7 @@ import {
 } from '@/lib/pagination-engine'
 
 export function Editor() {
-  const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
+  const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled } =
     useEditorStore()
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
   const isInsertingSuggestionRef = useRef(false)
@@ -162,6 +162,16 @@ export function Editor() {
           <strong>Error:</strong> {error}
         </div>
       )}
+
+      {/* Autocomplete toggle pill */}
+      <button
+        onClick={() => setAutocompleteEnabled(!isAutocompleteEnabled)}
+        className="autocomplete-toggle"
+        title={isAutocompleteEnabled ? 'Disable AI suggestions' : 'Enable AI suggestions'}
+      >
+        <span className={`toggle-indicator ${isAutocompleteEnabled ? 'active' : ''}`} />
+        <span>AI Suggestions</span>
+      </button>
     </div>
   )
 }

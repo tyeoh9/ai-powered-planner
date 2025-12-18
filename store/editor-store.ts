@@ -10,6 +10,10 @@ interface EditorState {
   suggestion: Suggestion | null
   setSuggestion: (suggestion: Suggestion | null) => void
 
+  // Autocomplete toggle
+  isAutocompleteEnabled: boolean
+  setAutocompleteEnabled: (enabled: boolean) => void
+
   // Loading state
   isGenerating: boolean
   setIsGenerating: (isGenerating: boolean) => void
@@ -29,6 +33,9 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   suggestion: null,
   setSuggestion: (suggestion) => set({ suggestion, error: null }),
+
+  isAutocompleteEnabled: true,
+  setAutocompleteEnabled: (enabled) => set({ isAutocompleteEnabled: enabled }),
 
   isGenerating: false,
   setIsGenerating: (isGenerating) => set({ isGenerating }),

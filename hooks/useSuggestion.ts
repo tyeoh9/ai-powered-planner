@@ -110,6 +110,12 @@ export function useSuggestion() {
         clearTimeout(debounceTimerRef.current)
       }
 
+      // Check if autocomplete is disabled
+      const store = useEditorStore.getState()
+      if (!store.isAutocompleteEnabled) {
+        return
+      }
+
       // Check if auto-trigger is blocked (after accepting/rejecting a suggestion)
       if (shouldBlockAutoTriggerRef.current) {
         if (isManualEdit) {
