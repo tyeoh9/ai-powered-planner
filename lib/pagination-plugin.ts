@@ -2,7 +2,7 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey, Transaction } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { TextSelection } from '@tiptap/pm/state'
-import { measureLines, calculatePageBreaks, getPageCount, PageBreak } from './pagination-layout'
+import { measureLinesWithSpacers, calculatePageBreaks, getPageCount, PageBreak, areBreaksEqual } from './pagination-layout'
 import {
   PAGE_GAP,
   PAGE_PADDING_TOP,
@@ -63,8 +63,6 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
 
         view(editorView) {
           let rafId: number | null = null
-          let stabilizationCount = 0
-          const MAX_ITERATIONS = 5
 
           const calculateLayout = () => {
             rafId = null
@@ -77,46 +75,34 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
             pendingCalculation = false
 
             try {
-              // Clear existing decorations first to get clean measurements
               const currentState = paginationPluginKey.getState(editorView.state)
-              const hasExistingDecorations = (currentState?.pageBreaks?.length ?? 0) > 0
+              const existingBreaks = currentState?.pageBreaks || []
 
-              if (hasExistingDecorations && stabilizationCount === 0) {
-                // First pass: clear decorations to measure raw content
-                const clearTr = editorView.state.tr.setMeta(paginationPluginKey, {
-                  decorations: DecorationSet.empty,
-                  pageBreaks: [],
-                })
-                clearTr.setMeta('addToHistory', false)
-                editorView.dispatch(clearTr)
-
-                // Schedule re-measurement after DOM updates
-                stabilizationCount = 1
-                rafId = requestAnimationFrame(calculateLayout)
-                return
-              }
-
-              // Measure lines in current DOM state
-              const lines = measureLines(editorView)
+              // Measure lines - account for existing spacers in the measurement
+              const lines = measureLinesWithSpacers(editorView, existingBreaks)
               const pageBreaks = calculatePageBreaks(lines)
 
-              console.log('[Pagination] Lines:', lines.length, 'Page breaks:', pageBreaks.length)
-              if (pageBreaks.length > 0) {
-                console.log('[Pagination] Breaks:', pageBreaks)
+              // Check if breaks changed (positions or count)
+              const breaksChanged = !areBreaksEqual(existingBreaks, pageBreaks)
+
+              if (!breaksChanged) {
+                // Layout stable, just update page count if needed
+                const newPageCount = getPageCount(lines, pageBreaks)
+                if (newPageCount !== lastPageCount) {
+                  lastPageCount = newPageCount
+                  onPageCountChange?.(newPageCount)
+                }
+                return
               }
 
               // Create decorations
               const decorations = pageBreaks.map((pageBreak) => {
-                return Decoration.widget(pageBreak.pos, (view, getPos) => {
+                return Decoration.widget(pageBreak.pos, () => {
                   const spacerWidget = document.createElement('div')
                   spacerWidget.className = 'page-break-spacer'
-                  // spacerHeight = remaining space on page + PAGE_PADDING_BOTTOM + PAGE_GAP + PAGE_PADDING_TOP
-                  // We render this as a single block that pushes content down
                   spacerWidget.style.height = `${pageBreak.spacerHeight}px`
                   spacerWidget.setAttribute('data-page', String(pageBreak.pageNumber))
                   spacerWidget.contentEditable = 'false'
-
-
                   return spacerWidget
                 }, {
                   side: -1,
@@ -133,21 +119,10 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
               tr.setMeta('addToHistory', false)
               editorView.dispatch(tr)
 
-              // Check if layout is stable (same number of breaks)
-              const prevBreakCount = currentState?.pageBreaks?.length || 0
-              if (pageBreaks.length !== prevBreakCount && stabilizationCount < MAX_ITERATIONS) {
-                // Layout changed, need to re-measure after DOM update
-                stabilizationCount++
-                rafId = requestAnimationFrame(calculateLayout)
-              } else {
-                // Layout is stable
-                stabilizationCount = 0
-
-                const newPageCount = getPageCount(lines, pageBreaks)
-                if (newPageCount !== lastPageCount) {
-                  lastPageCount = newPageCount
-                  onPageCountChange?.(newPageCount)
-                }
+              const newPageCount = getPageCount(lines, pageBreaks)
+              if (newPageCount !== lastPageCount) {
+                lastPageCount = newPageCount
+                onPageCountChange?.(newPageCount)
               }
             } finally {
               isCalculating = false
@@ -159,7 +134,6 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
           }
 
           const scheduleLayout = () => {
-            stabilizationCount = 0
             if (rafId === null) {
               rafId = requestAnimationFrame(calculateLayout)
             }

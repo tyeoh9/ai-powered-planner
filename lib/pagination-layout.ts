@@ -20,23 +20,58 @@ export interface PageBreak {
 }
 
 /**
- * Measure all visual lines (paragraphs) in the editor.
- * Returns positions relative to the ProseMirror editor DOM element.
+ * Compare two break arrays to see if they're equivalent
  */
-export function measureLines(view: EditorView): LineInfo[] {
+export function areBreaksEqual(a: PageBreak[], b: PageBreak[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].pos !== b[i].pos || Math.abs(a[i].spacerHeight - b[i].spacerHeight) > 1) {
+      return false
+    }
+  }
+  return true
+}
+
+/**
+ * Measure all visual lines (paragraphs) in the editor,
+ * subtracting the height of any existing spacers to get "raw" positions.
+ */
+export function measureLinesWithSpacers(view: EditorView, existingBreaks: PageBreak[]): LineInfo[] {
   const lines: LineInfo[] = []
   const { doc } = view.state
   const editorRect = view.dom.getBoundingClientRect()
+
+  // Build a map of spacer offsets by position
+  const spacerOffsetMap = new Map<number, number>()
+  let cumulativeOffset = 0
+  for (const brk of existingBreaks) {
+    cumulativeOffset += brk.spacerHeight
+    spacerOffsetMap.set(brk.pos, cumulativeOffset)
+  }
 
   doc.descendants((node, pos) => {
     if (node.isBlock && node.isTextblock) {
       const domNode = view.nodeDOM(pos)
       if (domNode && domNode instanceof HTMLElement) {
         const rect = domNode.getBoundingClientRect()
+        const rawTop = rect.top - editorRect.top
+        const rawBottom = rect.bottom - editorRect.top
+
+        // Find cumulative spacer offset before this position
+        let offsetBefore = 0
+        for (const brk of existingBreaks) {
+          if (brk.pos <= pos) {
+            offsetBefore = spacerOffsetMap.get(brk.pos) || 0
+          } else {
+            break
+          }
+        }
+
+        // Subtract spacer offset to get "natural" position without spacers
         lines.push({
           pos,
-          top: rect.top - editorRect.top,
-          bottom: rect.bottom - editorRect.top,
+          top: rawTop - offsetBefore,
+          bottom: rawBottom - offsetBefore,
           height: rect.height,
         })
       }
