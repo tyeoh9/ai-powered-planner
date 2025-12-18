@@ -116,17 +116,18 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
                   spacerWidget.setAttribute('data-page', String(pageBreak.pageNumber))
                   spacerWidget.contentEditable = 'false'
 
-                  // Visual gap area - positioned in the middle of the spacer
-                  // The spacer contains: remaining space + bottom padding + gap + top padding
-                  // We want the gap to appear after (remaining + bottom padding)
-                  const gapArea = document.createElement('div')
-                  gapArea.className = 'page-break-gap'
-                  gapArea.style.height = `${PAGE_GAP}px`
-                  gapArea.style.position = 'absolute'
-                  gapArea.style.bottom = `${PAGE_PADDING_TOP}px`
-                  gapArea.style.left = '0'
-                  gapArea.style.right = '0'
-                  spacerWidget.appendChild(gapArea)
+                  // Visual gap line - positioned in the center of the gap between pages
+                  // Spacer from top: remaining space + PAGE_PADDING_BOTTOM + PAGE_GAP + PAGE_PADDING_TOP
+                  // Gap center from bottom: PAGE_PADDING_TOP + PAGE_GAP/2
+                  const gapLine = document.createElement('div')
+                  gapLine.className = 'page-break-line-inner'
+                  gapLine.style.position = 'absolute'
+                  gapLine.style.bottom = `${PAGE_PADDING_TOP + PAGE_GAP / 2}px`
+                  gapLine.style.left = '0'
+                  gapLine.style.right = '0'
+                  gapLine.style.height = '1px'
+                  gapLine.style.background = '#d1d5db'
+                  spacerWidget.appendChild(gapLine)
 
                   return spacerWidget
                 }, {

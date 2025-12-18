@@ -229,23 +229,7 @@
   /* No background - spacer is invisible, only the gap shows */
 }
 
-.page-break-gap {
-  position: relative;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-break-gap::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: #d1d5db;
-}
+/* Line rendered directly by plugin - no additional CSS needed */
 
 /* ===== Thinking Indicator Pill ===== */
 .thinking-pill {

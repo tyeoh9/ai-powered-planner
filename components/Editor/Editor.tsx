@@ -155,17 +155,6 @@ export function Editor() {
             />
           </div>
         )}
-
-        {/* Page break lines (visual only, decorations handle content flow) */}
-        {Array.from({ length: pageCount - 1 }, (_, i) => (
-          <div
-            key={i}
-            className="page-break-line"
-            style={{
-              top: (i + 1) * PAGE_HEIGHT + i * PAGE_GAP + PAGE_GAP / 2,
-            }}
-          />
-        ))}
       </div>
 
       {error && !isGenerating && (
