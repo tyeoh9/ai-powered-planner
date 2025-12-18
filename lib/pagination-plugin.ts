@@ -116,18 +116,6 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
                   spacerWidget.setAttribute('data-page', String(pageBreak.pageNumber))
                   spacerWidget.contentEditable = 'false'
 
-                  // Visual gap line - positioned in the center of the gap between pages
-                  // Spacer from top: remaining space + PAGE_PADDING_BOTTOM + PAGE_GAP + PAGE_PADDING_TOP
-                  // Gap center from bottom: PAGE_PADDING_TOP + PAGE_GAP/2
-                  const gapLine = document.createElement('div')
-                  gapLine.className = 'page-break-line-inner'
-                  gapLine.style.position = 'absolute'
-                  gapLine.style.bottom = `${PAGE_PADDING_TOP + PAGE_GAP / 2}px`
-                  gapLine.style.left = '0'
-                  gapLine.style.right = '0'
-                  gapLine.style.height = '1px'
-                  gapLine.style.background = '#d1d5db'
-                  spacerWidget.appendChild(gapLine)
 
                   return spacerWidget
                 }, {
@@ -217,10 +205,12 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
             for (const pageBreak of pluginState.pageBreaks) {
               const breakCoords = view.coordsAtPos(pageBreak.pos)
               const breakY = breakCoords.top - editorRect.top
+              const afterBreakY = breakY + pageBreak.spacerHeight
 
               if (event.key === 'ArrowDown') {
-                if (relativeY >= breakY - 30 && relativeY < breakY + pageBreak.spacerHeight) {
-                  const targetY = editorRect.top + breakY + pageBreak.spacerHeight + 10
+                // If cursor is near the bottom of the page (before the spacer)
+                if (relativeY >= breakY - 30 && relativeY < afterBreakY) {
+                  const targetY = editorRect.top + afterBreakY + 10
                   const targetPos = view.posAtCoords({ left: coords.left, top: targetY })
                   if (targetPos) {
                     const resolvedPos = state.doc.resolve(targetPos.pos)
@@ -232,8 +222,9 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
               }
 
               if (event.key === 'ArrowUp') {
-                const afterBreakY = breakY + pageBreak.spacerHeight
-                if (relativeY > breakY && relativeY <= afterBreakY + 30) {
+                // If cursor is on the first line after the spacer (within ~50px of spacer end)
+                // Check if cursor position is right after this page break
+                if (selection.head >= pageBreak.pos && relativeY >= afterBreakY && relativeY <= afterBreakY + 50) {
                   const targetY = editorRect.top + breakY - 10
                   const targetPos = view.posAtCoords({ left: coords.left, top: targetY })
                   if (targetPos) {
