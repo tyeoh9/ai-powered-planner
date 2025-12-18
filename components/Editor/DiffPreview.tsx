@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { Mark, mergeAttributes } from '@tiptap/core'
 import { DiffSegment } from '@/types'
 import { PaginationPlugin } from '@/lib/pagination-plugin'
 
@@ -13,12 +14,49 @@ interface DiffPreviewProps {
   onPageCountChange?: (pageCount: number) => void
 }
 
+// Custom mark for added text
+const DiffAdded = Mark.create({
+  name: 'diffAdded',
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span.diff-added',
+      },
+      {
+        tag: 'mark[data-diff="added"]',
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-added' }), 0]
+  },
+})
+
+// Custom mark for removed text
+const DiffRemoved = Mark.create({
+  name: 'diffRemoved',
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span.diff-removed',
+      },
+      {
+        tag: 'mark[data-diff="removed"]',
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-removed' }), 0]
+  },
+})
+
 export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: DiffPreviewProps) {
   // Convert diff segments to HTML with proper paragraph structure
   const htmlContent = useMemo(() => {
-    // First, reconstruct the full text with diff markers
-    // We need to identify paragraph boundaries across all segments
-
     // Build a list of "chunks" where each chunk is either a paragraph break or text with its type
     interface Chunk {
       type: 'text' | 'paragraph-break'
@@ -70,7 +108,7 @@ export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: Dif
       paragraphs.push({ spans: currentPara })
     }
 
-    // Convert to HTML
+    // Convert to HTML using custom mark tags
     const html = paragraphs.map((para) => {
       const spanHtml = para.spans.map((span) => {
         const escapedText = span.text
@@ -96,6 +134,8 @@ export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: Dif
   const editor = useEditor({
     extensions: [
       StarterKit,
+      DiffAdded,
+      DiffRemoved,
       PaginationPlugin.configure({
         onPageCountChange: onPageCountChange,
       }),
