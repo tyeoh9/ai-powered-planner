@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { computeDiff, hasChanges } from '@/utils/diff'
 import { SUGGESTION_DEBOUNCE_MS, MIN_CONTENT_LENGTH_FOR_SUGGESTION } from '@/lib/constants'
+import type { CursorContext, FIMPayload } from '@/types'
 
 async function readStreamResponse(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<string> {
   const decoder = new TextDecoder()
@@ -26,13 +27,46 @@ function handleSuggestionError(error: unknown): void {
   useEditorStore.getState().setError(message)
 }
 
+/**
+ * Detects cursor context based on surrounding text
+ */
+function detectCursorContext(prefix: string): CursorContext {
+  const trimmedPrefix = prefix.trimEnd()
+
+  // Check for new block (double newline at end)
+  if (prefix.endsWith('\n\n') || prefix.endsWith('\n')) {
+    const endsWithDoubleNewline = prefix.endsWith('\n\n')
+    if (endsWithDoubleNewline) return 'new-block'
+    return 'end-of-line'
+  }
+
+  // Check for end of sentence
+  if (/[.!?]\s*$/.test(trimmedPrefix)) {
+    return 'end-of-sentence'
+  }
+
+  // Default: mid-sentence
+  return 'mid-sentence'
+}
+
+/**
+ * Splits content into prefix and suffix at cursor position
+ */
+function splitContentAtCursor(content: string, cursorPosition: number): { prefix: string; suffix: string } {
+  const safePosition = Math.min(Math.max(0, cursorPosition), content.length)
+  return {
+    prefix: content.slice(0, safePosition),
+    suffix: content.slice(safePosition),
+  }
+}
+
 export function useSuggestion() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const shouldBlockAutoTriggerRef = useRef(false)
   const isCurrentlyGeneratingRef = useRef(false)
 
-  const fetchSuggestion = useCallback(async (content: string) => {
+  const fetchSuggestion = useCallback(async (payload: FIMPayload) => {
     if (isCurrentlyGeneratingRef.current) return
 
     abortControllerRef.current?.abort()
@@ -43,11 +77,13 @@ export function useSuggestion() {
     store.setIsGenerating(true)
     store.setError(null)
 
+    const originalContent = payload.prefix + payload.suffix
+
     try {
       const response = await fetch('/api/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(payload),
         signal: abortControllerRef.current.signal,
       })
 
@@ -61,22 +97,39 @@ export function useSuggestion() {
         throw new Error('No response body received')
       }
 
-      const newContent = await readStreamResponse(reader)
+      let generatedMiddle = await readStreamResponse(reader)
 
-      if (!newContent) {
-        store.setError('No suggestion generated')
+      if (!generatedMiddle) {
+        store.setSuggestion(null)
         return
       }
 
-      const diff = computeDiff(content, newContent)
+      // Ensure proper spacing at boundaries
+      const prefixEndsWithSpace = /\s$/.test(payload.prefix)
+      const middleStartsWithSpace = /^\s/.test(generatedMiddle)
+      const middleStartsWithWord = /^\w/.test(generatedMiddle)
+
+      // Add space before generated text if needed
+      if (!prefixEndsWithSpace && middleStartsWithWord) {
+        generatedMiddle = ' ' + generatedMiddle
+      }
+      // Remove double space if both have spaces
+      if (prefixEndsWithSpace && middleStartsWithSpace) {
+        generatedMiddle = generatedMiddle.trimStart()
+      }
+
+      // Construct the new full content: prefix + generated + suffix
+      const newContent = payload.prefix + generatedMiddle + payload.suffix
+      const diff = computeDiff(originalContent, newContent)
 
       if (hasChanges(diff)) {
         store.setSuggestion({
           id: crypto.randomUUID(),
-          originalContent: content,
+          originalContent,
           newContent,
           diff,
           type: 'edit',
+          cursorPosition: payload.prefix.length,
         })
       } else {
         store.setSuggestion(null)
@@ -90,7 +143,7 @@ export function useSuggestion() {
   }, [])
 
   const triggerSuggestion = useCallback(
-    (content: string, _position: number, isManualEdit: boolean = true) => {
+    (content: string, cursorPosition: number, isManualEdit: boolean = true) => {
       // Abort any in-flight request immediately when user types
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -114,8 +167,14 @@ export function useSuggestion() {
 
       if (content.length < MIN_CONTENT_LENGTH_FOR_SUGGESTION) return
 
+      // Split content at cursor and detect context
+      const { prefix, suffix } = splitContentAtCursor(content, cursorPosition)
+      const cursorContext = detectCursorContext(prefix)
+
+      const payload: FIMPayload = { prefix, suffix, cursorContext }
+
       debounceTimerRef.current = setTimeout(() => {
-        fetchSuggestion(content)
+        fetchSuggestion(payload)
       }, SUGGESTION_DEBOUNCE_MS)
     },
     [fetchSuggestion]

@@ -20,9 +20,9 @@ export function Editor() {
   const [pageCount, setPageCount] = useState(1)
 
   const handleContentChange = useCallback(
-    (content: string, isManualEdit: boolean) => {
+    (content: string, cursorPosition: number, isManualEdit: boolean) => {
       setContent(content)
-      triggerSuggestion(content, content.length, isManualEdit)
+      triggerSuggestion(content, cursorPosition, isManualEdit)
     },
     [setContent, triggerSuggestion]
   )
@@ -41,10 +41,11 @@ export function Editor() {
     ],
     content: '',
     immediatelyRender: false,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
       if (isInsertingSuggestionRef.current) return
       const text = editor.getText()
-      handleContentChange(text, true)
+      const cursorPosition = transaction.selection.anchor - 1 // -1 to convert from ProseMirror pos to text pos
+      handleContentChange(text, Math.max(0, cursorPosition), true)
     },
   })
 

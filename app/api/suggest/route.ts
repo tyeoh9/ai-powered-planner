@@ -2,9 +2,11 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { streamText } from 'ai'
 import {
   DEFAULT_AI_MODEL,
-  PLANNING_ASSISTANT_SYSTEM_PROMPT,
-  generateImprovementPrompt,
+  FIM_SYSTEM_PROMPT,
+  FIM_CONFIG,
+  generateFIMPrompt,
 } from '@/lib/constants'
+import type { FIMPayload } from '@/types'
 
 export const runtime = 'edge'
 
@@ -34,16 +36,20 @@ function getAiModel(): string {
 
 export async function POST(req: Request) {
   try {
-    const { content } = await req.json()
+    const { prefix, suffix, cursorContext } = (await req.json()) as FIMPayload
 
     if (!validateApiKey()) {
       return createErrorResponse('ANTHROPIC_API_KEY is not configured')
     }
 
+    const config = FIM_CONFIG[cursorContext]
+
     const result = streamText({
       model: anthropic(getAiModel()),
-      system: PLANNING_ASSISTANT_SYSTEM_PROMPT,
-      prompt: generateImprovementPrompt(content),
+      system: FIM_SYSTEM_PROMPT,
+      prompt: generateFIMPrompt(prefix, suffix),
+      maxOutputTokens: config.maxTokens,
+      ...(config.stopSequences.length > 0 && { stopSequences: config.stopSequences }),
       abortSignal: req.signal,
     })
 

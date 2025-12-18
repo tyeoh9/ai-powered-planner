@@ -1,3 +1,5 @@
+import type { CursorContext } from '@/types'
+
 /**
  * Application-wide constants and configuration values
  */
@@ -19,33 +21,60 @@ export const KEYBOARD_SHORTCUTS = {
 export const EDITOR_PLACEHOLDER =
   'Describe your project... (e.g., "My project is a social media app for dog owners")'
 
-// AI System prompt for planning assistant
-export const PLANNING_ASSISTANT_SYSTEM_PROMPT = `You are a planning assistant that helps improve project planning documents.
+// FIM (Fill-in-the-Middle) configuration
+// Note: Anthropic requires stop sequences to contain non-whitespace characters
+export const FIM_CONFIG: Record<
+  CursorContext,
+  { maxTokens: number; stopSequences: string[] }
+> = {
+  'mid-sentence': { maxTokens: 20, stopSequences: ['. ', '! ', '? '] },
+  'end-of-sentence': { maxTokens: 50, stopSequences: [] },
+  'end-of-line': { maxTokens: 100, stopSequences: [] },
+  'new-block': { maxTokens: 200, stopSequences: [] },
+}
 
-Your job is to suggest edits to the document. You can:
-- Add new content (like tech stack suggestions)
-- Modify existing content to improve it
-- Remove content that's no longer relevant
+// AI System prompt for FIM completion
+export const FIM_SYSTEM_PROMPT = `You are a planning assistant that completes text at the cursor position.
 
-IMPORTANT: Return the COMPLETE edited document, not just the changes.
+You will receive:
+- PREFIX: Text before the cursor
+- SUFFIX: Text after the cursor (if any)
 
-Guidelines:
-- Keep the user's original intent and voice
+Your job: Generate ONLY the text that goes between prefix and suffix.
+
+CRITICAL RULES:
+- Do NOT repeat any part of the prefix
+- Do NOT repeat any part of the suffix
+- Output ONLY the new middle content
+- Include necessary spacing: if prefix ends without a space and your text starts with a word, begin with a space
+- Stop naturally - don't over-generate
+- Match the style and tone of surrounding text
 - Be concise and practical
-- If the document describes a project, you may suggest a tech stack
-- If tech stack already exists and project scope changes, update the tech stack accordingly
 - Write in plain text, no markdown formatting symbols
-- Use bullet points (•) for lists`
+- Use bullet points (•) for lists if appropriate`
 
 /**
- * Generates the prompt for document improvement suggestions
+ * Generates the FIM prompt with prefix and suffix
  */
-export function generateImprovementPrompt(content: string): string {
-  return `Here is the current document:
-
+export function generateFIMPrompt(prefix: string, suffix: string): string {
+  if (suffix.trim()) {
+    return `PREFIX:
 """
-${content}
+${prefix}
 """
 
-Suggest improvements or additions to this document. Return the complete edited version of the document.`
+SUFFIX:
+"""
+${suffix}
+"""
+
+Generate the text that connects the prefix to the suffix. Output ONLY the middle content.`
+  }
+
+  return `PREFIX:
+"""
+${prefix}
+"""
+
+Continue the text naturally. Output ONLY the continuation.`
 }
