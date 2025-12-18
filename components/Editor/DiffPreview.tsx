@@ -5,7 +5,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { DiffSegment } from '@/types'
 import { PaginationPlugin } from '@/lib/pagination-plugin'
-import { Mark, mergeAttributes } from '@tiptap/core'
 
 interface DiffPreviewProps {
   diff: DiffSegment[]
@@ -14,64 +13,84 @@ interface DiffPreviewProps {
   onPageCountChange?: (pageCount: number) => void
 }
 
-// Custom marks for diff highlighting
-const DiffAdded = Mark.create({
-  name: 'diffAdded',
-  renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-added' }), 0]
-  },
-})
-
-const DiffRemoved = Mark.create({
-  name: 'diffRemoved',
-  renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-removed' }), 0]
-  },
-})
-
 export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: DiffPreviewProps) {
-  // Convert diff segments to HTML with marks
+  // Convert diff segments to HTML with proper paragraph structure
   const htmlContent = useMemo(() => {
-    const result: string[] = []
+    // First, reconstruct the full text with diff markers
+    // We need to identify paragraph boundaries across all segments
+
+    // Build a list of "chunks" where each chunk is either a paragraph break or text with its type
+    interface Chunk {
+      type: 'text' | 'paragraph-break'
+      text?: string
+      diffType?: 'unchanged' | 'added' | 'removed'
+    }
+
+    const chunks: Chunk[] = []
 
     diff.forEach((segment) => {
-      const escapedText = segment.text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+      // Split this segment by double newlines (paragraph breaks)
+      const parts = segment.text.split(/(\n\n+)/)
 
-      // Split by double newlines for paragraphs
-      const paragraphs = escapedText.split(/\n\n+/)
-
-      paragraphs.forEach((para, index) => {
-        // Convert single newlines to <br>
-        const htmlPara = para.replace(/\n/g, '<br>')
-
-        let wrappedPara: string
-        if (segment.type === 'added') {
-          wrappedPara = `<span class="diff-added">${htmlPara}</span>`
-        } else if (segment.type === 'removed') {
-          wrappedPara = `<span class="diff-removed">${htmlPara}</span>`
-        } else {
-          wrappedPara = htmlPara
-        }
-
-        if (index < paragraphs.length - 1) {
-          result.push(`<p>${wrappedPara}</p>`)
-        } else {
-          // Last paragraph in this segment - don't close yet, might merge with next
-          result.push(wrappedPara)
+      parts.forEach((part) => {
+        if (/^\n\n+$/.test(part)) {
+          // This is a paragraph break
+          chunks.push({ type: 'paragraph-break' })
+        } else if (part.length > 0) {
+          // This is text content
+          chunks.push({
+            type: 'text',
+            text: part,
+            diffType: segment.type,
+          })
         }
       })
     })
 
-    // Wrap everything in paragraphs properly
-    const fullContent = result.join('')
-    // If not starting with <p>, wrap it
-    if (!fullContent.startsWith('<p>')) {
-      return `<p>${fullContent}</p>`
+    // Now build paragraphs from chunks
+    const paragraphs: { spans: { text: string; diffType: string }[] }[] = []
+    let currentPara: { text: string; diffType: string }[] = []
+
+    chunks.forEach((chunk) => {
+      if (chunk.type === 'paragraph-break') {
+        if (currentPara.length > 0) {
+          paragraphs.push({ spans: currentPara })
+          currentPara = []
+        }
+      } else if (chunk.type === 'text' && chunk.text) {
+        currentPara.push({
+          text: chunk.text,
+          diffType: chunk.diffType || 'unchanged',
+        })
+      }
+    })
+
+    // Don't forget the last paragraph
+    if (currentPara.length > 0) {
+      paragraphs.push({ spans: currentPara })
     }
-    return fullContent
+
+    // Convert to HTML
+    const html = paragraphs.map((para) => {
+      const spanHtml = para.spans.map((span) => {
+        const escapedText = span.text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>')
+
+        if (span.diffType === 'added') {
+          return `<span class="diff-added">${escapedText}</span>`
+        } else if (span.diffType === 'removed') {
+          return `<span class="diff-removed">${escapedText}</span>`
+        }
+        return escapedText
+      }).join('')
+
+      return `<p>${spanHtml}</p>`
+    }).join('')
+
+    return html || '<p></p>'
   }, [diff])
 
   const editor = useEditor({

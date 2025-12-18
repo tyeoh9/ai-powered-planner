@@ -30,6 +30,15 @@
   white-space: pre-wrap;
 }
 
+/* Paragraph spacing in editor */
+.ProseMirror p {
+  margin-bottom: 1em;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
 /* Single continuous editor - content flows naturally with pagination decorations */
 .editor-content-area .ProseMirror {
   min-height: 100px;
