@@ -1,22 +1,38 @@
 'use client'
 
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import { useCallback, useRef } from 'react'
 import { useEditorStore } from '@/store/editor-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { DiffPreview } from './DiffPreview'
+import { PaginationPlugin } from '@/lib/pagination-plugin'
 import { EDITOR_PLACEHOLDER } from '@/lib/constants'
+import {
+  PAGE_HEIGHT,
+  PAGE_GAP,
+  PAGE_PADDING_TOP,
+  PAGE_PADDING_BOTTOM,
+  PAGE_WIDTH,
+  calculateTotalHeight,
+} from '@/lib/pagination-engine'
 
 export function Editor() {
   const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error } =
     useEditorStore()
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
-
-  // Track whether we're programmatically inserting suggestion text (vs manual user edit)
   const isInsertingSuggestionRef = useRef(false)
+  const [pageCount, setPageCount] = useState(1)
+
+  const handleContentChange = useCallback(
+    (content: string, isManualEdit: boolean) => {
+      setContent(content)
+      triggerSuggestion(content, content.length, isManualEdit)
+    },
+    [setContent, triggerSuggestion]
+  )
 
   const editor = useEditor({
     extensions: [
@@ -24,33 +40,42 @@ export function Editor() {
       Placeholder.configure({
         placeholder: EDITOR_PLACEHOLDER,
       }),
+      PaginationPlugin.configure({
+        onPageCountChange: (count) => {
+          setPageCount(count)
+        },
+      }),
     ],
     content: '',
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
-      const newContent = editor.getText()
-      const documentSize = editor.state.doc.content.size
-      const isManualEdit = !isInsertingSuggestionRef.current
-
-      setContent(newContent)
-      triggerSuggestion(newContent, documentSize, isManualEdit)
+      if (isInsertingSuggestionRef.current) return
+      const text = editor.getText()
+      handleContentChange(text, true)
     },
   })
 
   const handleAcceptSuggestion = useCallback(() => {
-    if (!editor || !suggestion) {
-      return
-    }
+    if (!suggestion || !editor) return
 
     blockUntilManualEdit()
     isInsertingSuggestionRef.current = true
 
-    // Replace editor content with the suggested content
-    editor.chain().focus().clearContent().insertContent(suggestion.newContent).run()
-    acceptSuggestion()
+    // Convert plain text to HTML paragraphs
+    const htmlContent = suggestion.newContent
+      .split(/\n\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('')
 
-    isInsertingSuggestionRef.current = false
-  }, [editor, suggestion, acceptSuggestion, blockUntilManualEdit])
+    editor.commands.setContent(htmlContent)
+
+    setTimeout(() => {
+      isInsertingSuggestionRef.current = false
+    }, 200)
+
+    acceptSuggestion()
+  }, [suggestion, editor, acceptSuggestion, blockUntilManualEdit])
 
   const handleRejectSuggestion = useCallback(() => {
     blockUntilManualEdit()
@@ -58,7 +83,6 @@ export function Editor() {
     cancelSuggestion()
   }, [rejectSuggestion, cancelSuggestion, blockUntilManualEdit])
 
-  // Set up keyboard shortcuts for accepting/rejecting suggestions
   useKeyboardShortcuts(!!suggestion, {
     onAccept: handleAcceptSuggestion,
     onReject: handleRejectSuggestion,
@@ -66,38 +90,86 @@ export function Editor() {
 
   const hasSuggestion = suggestion && suggestion.diff && suggestion.diff.length > 0
 
+  // Calculate the total height needed for all pages + gaps
+  const totalPagesHeight = calculateTotalHeight(pageCount)
+
   return (
-    <div className="relative w-full max-w-3xl mx-auto">
-      <div className="relative border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
-        {hasSuggestion && (
-          <DiffPreview
-            diff={suggestion.diff}
-            onAccept={handleAcceptSuggestion}
-            onReject={handleRejectSuggestion}
-          />
-        )}
-
-        <div className={hasSuggestion ? 'hidden' : ''}>
-          <EditorContent
-            editor={editor}
-            className="prose prose-sm max-w-none p-6 min-h-[400px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[360px]"
-          />
+    <div className="relative">
+      {/* Fixed AI thinking indicator pill */}
+      {isGenerating && (
+        <div className="thinking-pill">
+          <span className="thinking-dots">
+            <span className="thinking-dot" />
+            <span className="thinking-dot" />
+            <span className="thinking-dot" />
+          </span>
+          <span>AI is thinking...</span>
         </div>
+      )}
 
-        {isGenerating && (
-          <div className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-blue-100 border border-blue-300 rounded-lg text-blue-700 text-sm shadow-md">
-            <span className="thinking-dots">
-              <span className="thinking-dot" />
-              <span className="thinking-dot" />
-              <span className="thinking-dot" />
-            </span>
-            <span>AI is thinking...</span>
+      {/* Pages container */}
+      <div className="pages-container" style={{ minHeight: totalPagesHeight }}>
+        {/* Page backgrounds (white paper shadows) */}
+        {Array.from({ length: pageCount }, (_, i) => (
+          <div
+            key={i}
+            className="page-shadow"
+            style={{
+              top: i * (PAGE_HEIGHT + PAGE_GAP),
+              height: PAGE_HEIGHT,
+            }}
+          >
+            <span className="page-number">{i + 1}</span>
+          </div>
+        ))}
+
+        {/* Content area - single continuous editor */}
+        {hasSuggestion ? (
+          <div
+            className="pages-content"
+            style={{
+              paddingTop: PAGE_PADDING_TOP,
+              paddingLeft: 96,
+              paddingRight: 96,
+            }}
+          >
+            <DiffPreview
+              diff={suggestion.diff}
+              onAccept={handleAcceptSuggestion}
+              onReject={handleRejectSuggestion}
+              onPageCountChange={setPageCount}
+            />
+          </div>
+        ) : (
+          <div
+            className="pages-content editor-content-area"
+            style={{
+              paddingTop: PAGE_PADDING_TOP,
+              paddingLeft: 96,
+              paddingRight: 96,
+            }}
+          >
+            <EditorContent
+              editor={editor}
+              className="prose prose-lg max-w-none focus:outline-none [&_.ProseMirror]:outline-none"
+            />
           </div>
         )}
+
+        {/* Page break lines (visual only, decorations handle content flow) */}
+        {Array.from({ length: pageCount - 1 }, (_, i) => (
+          <div
+            key={i}
+            className="page-break-line"
+            style={{
+              top: (i + 1) * PAGE_HEIGHT + i * PAGE_GAP + PAGE_GAP / 2,
+            }}
+          />
+        ))}
       </div>
 
       {error && !isGenerating && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="max-w-xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 rounded-full text-red-700 text-sm text-center">
           <strong>Error:</strong> {error}
         </div>
       )}
