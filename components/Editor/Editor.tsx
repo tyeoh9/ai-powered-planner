@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -10,14 +10,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { DiffPreview } from './DiffPreview'
 import { PaginationPlugin } from '@/lib/pagination-plugin'
 import { EDITOR_PLACEHOLDER } from '@/lib/constants'
-import {
-  PAGE_HEIGHT,
-  PAGE_GAP,
-  PAGE_PADDING_TOP,
-  PAGE_PADDING_BOTTOM,
-  PAGE_WIDTH,
-  calculateTotalHeight,
-} from '@/lib/pagination-engine'
+import { PAGE_HEIGHT, PAGE_GAP, PAGE_PADDING_TOP, calculateTotalHeight } from '@/lib/pagination-engine'
 
 export function Editor() {
   const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled } =
@@ -55,20 +48,21 @@ export function Editor() {
     },
   })
 
+  const convertTextToHtml = (text: string): string => {
+    return text
+      .split(/\n\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('')
+  }
+
   const handleAcceptSuggestion = useCallback(() => {
     if (!suggestion || !editor) return
 
     blockUntilManualEdit()
     isInsertingSuggestionRef.current = true
 
-    // Convert plain text to HTML paragraphs
-    const htmlContent = suggestion.newContent
-      .split(/\n\n+/)
-      .filter(p => p.trim())
-      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
-      .join('')
-
-    editor.commands.setContent(htmlContent)
+    editor.commands.setContent(convertTextToHtml(suggestion.newContent))
 
     setTimeout(() => {
       isInsertingSuggestionRef.current = false
@@ -88,9 +82,7 @@ export function Editor() {
     onReject: handleRejectSuggestion,
   })
 
-  const hasSuggestion = suggestion && suggestion.diff && suggestion.diff.length > 0
-
-  // Calculate the total height needed for all pages + gaps
+  const hasSuggestion = !!suggestion?.diff?.length
   const totalPagesHeight = calculateTotalHeight(pageCount)
 
   return (
@@ -107,9 +99,7 @@ export function Editor() {
         </div>
       )}
 
-      {/* Pages container */}
       <div className="pages-container" style={{ minHeight: totalPagesHeight }}>
-        {/* Page backgrounds (white paper shadows) */}
         {Array.from({ length: pageCount }, (_, i) => (
           <div
             key={i}
@@ -123,16 +113,8 @@ export function Editor() {
           </div>
         ))}
 
-        {/* Content area - single continuous editor */}
         {hasSuggestion ? (
-          <div
-            className="pages-content"
-            style={{
-              paddingTop: PAGE_PADDING_TOP,
-              paddingLeft: 96,
-              paddingRight: 96,
-            }}
-          >
+          <div className="pages-content" style={{ paddingTop: PAGE_PADDING_TOP, paddingLeft: 96, paddingRight: 96 }}>
             <DiffPreview
               diff={suggestion.diff}
               onAccept={handleAcceptSuggestion}
@@ -141,18 +123,8 @@ export function Editor() {
             />
           </div>
         ) : (
-          <div
-            className="pages-content editor-content-area"
-            style={{
-              paddingTop: PAGE_PADDING_TOP,
-              paddingLeft: 96,
-              paddingRight: 96,
-            }}
-          >
-            <EditorContent
-              editor={editor}
-              className="prose prose-lg max-w-none focus:outline-none [&_.ProseMirror]:outline-none"
-            />
+          <div className="pages-content editor-content-area" style={{ paddingTop: PAGE_PADDING_TOP, paddingLeft: 96, paddingRight: 96 }}>
+            <EditorContent editor={editor} className="prose prose-lg max-w-none focus:outline-none [&_.ProseMirror]:outline-none" />
           </div>
         )}
       </div>
@@ -163,7 +135,6 @@ export function Editor() {
         </div>
       )}
 
-      {/* Autocomplete toggle pill */}
       <button
         onClick={() => setAutocompleteEnabled(!isAutocompleteEnabled)}
         className="autocomplete-toggle"

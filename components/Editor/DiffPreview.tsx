@@ -14,120 +14,97 @@ interface DiffPreviewProps {
   onPageCountChange?: (pageCount: number) => void
 }
 
-// Custom mark for added text
 const DiffAdded = Mark.create({
   name: 'diffAdded',
-
-  parseHTML() {
-    return [
-      {
-        tag: 'span.diff-added',
-      },
-      {
-        tag: 'mark[data-diff="added"]',
-      },
-    ]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-added' }), 0]
-  },
+  parseHTML: () => [{ tag: 'span.diff-added' }, { tag: 'mark[data-diff="added"]' }],
+  renderHTML: ({ HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { class: 'diff-added' }), 0],
 })
 
-// Custom mark for removed text
 const DiffRemoved = Mark.create({
   name: 'diffRemoved',
-
-  parseHTML() {
-    return [
-      {
-        tag: 'span.diff-removed',
-      },
-      {
-        tag: 'mark[data-diff="removed"]',
-      },
-    ]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(HTMLAttributes, { class: 'diff-removed' }), 0]
-  },
+  parseHTML: () => [{ tag: 'span.diff-removed' }, { tag: 'mark[data-diff="removed"]' }],
+  renderHTML: ({ HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { class: 'diff-removed' }), 0],
 })
 
-export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: DiffPreviewProps) {
-  // Convert diff segments to HTML with proper paragraph structure
-  const htmlContent = useMemo(() => {
-    // Build a list of "chunks" where each chunk is either a paragraph break or text with its type
-    interface Chunk {
-      type: 'text' | 'paragraph-break'
-      text?: string
-      diffType?: 'unchanged' | 'added' | 'removed'
-    }
+interface Chunk {
+  type: 'text' | 'paragraph-break'
+  text?: string
+  diffType?: 'unchanged' | 'added' | 'removed'
+}
 
-    const chunks: Chunk[] = []
+interface Span {
+  text: string
+  diffType: string
+}
 
-    diff.forEach((segment) => {
-      // Split this segment by double newlines (paragraph breaks)
-      const parts = segment.text.split(/(\n\n+)/)
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+}
 
-      parts.forEach((part) => {
-        if (/^\n\n+$/.test(part)) {
-          // This is a paragraph break
-          chunks.push({ type: 'paragraph-break' })
-        } else if (part.length > 0) {
-          // This is text content
-          chunks.push({
-            type: 'text',
-            text: part,
-            diffType: segment.type,
-          })
-        }
-      })
-    })
+function wrapWithDiffClass(text: string, diffType: string): string {
+  const escaped = escapeHtml(text)
+  if (diffType === 'added') return `<span class="diff-added">${escaped}</span>`
+  if (diffType === 'removed') return `<span class="diff-removed">${escaped}</span>`
+  return escaped
+}
 
-    // Now build paragraphs from chunks
-    const paragraphs: { spans: { text: string; diffType: string }[] }[] = []
-    let currentPara: { text: string; diffType: string }[] = []
+function buildChunksFromDiff(diff: DiffSegment[]): Chunk[] {
+  const chunks: Chunk[] = []
 
-    chunks.forEach((chunk) => {
-      if (chunk.type === 'paragraph-break') {
-        if (currentPara.length > 0) {
-          paragraphs.push({ spans: currentPara })
-          currentPara = []
-        }
-      } else if (chunk.type === 'text' && chunk.text) {
-        currentPara.push({
-          text: chunk.text,
-          diffType: chunk.diffType || 'unchanged',
-        })
+  diff.forEach((segment) => {
+    const parts = segment.text.split(/(\n\n+)/)
+    parts.forEach((part) => {
+      if (/^\n\n+$/.test(part)) {
+        chunks.push({ type: 'paragraph-break' })
+      } else if (part.length > 0) {
+        chunks.push({ type: 'text', text: part, diffType: segment.type })
       }
     })
+  })
 
-    // Don't forget the last paragraph
-    if (currentPara.length > 0) {
-      paragraphs.push({ spans: currentPara })
+  return chunks
+}
+
+function buildParagraphsFromChunks(chunks: Chunk[]): Span[][] {
+  const paragraphs: Span[][] = []
+  let currentPara: Span[] = []
+
+  chunks.forEach((chunk) => {
+    if (chunk.type === 'paragraph-break') {
+      if (currentPara.length > 0) {
+        paragraphs.push(currentPara)
+        currentPara = []
+      }
+    } else if (chunk.type === 'text' && chunk.text) {
+      currentPara.push({ text: chunk.text, diffType: chunk.diffType || 'unchanged' })
     }
+  })
 
-    // Convert to HTML using custom mark tags
-    const html = paragraphs.map((para) => {
-      const spanHtml = para.spans.map((span) => {
-        const escapedText = span.text
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br>')
+  if (currentPara.length > 0) {
+    paragraphs.push(currentPara)
+  }
 
-        if (span.diffType === 'added') {
-          return `<span class="diff-added">${escapedText}</span>`
-        } else if (span.diffType === 'removed') {
-          return `<span class="diff-removed">${escapedText}</span>`
-        }
-        return escapedText
-      }).join('')
+  return paragraphs
+}
 
+function convertParagraphsToHtml(paragraphs: Span[][]): string {
+  return paragraphs
+    .map((spans) => {
+      const spanHtml = spans.map((span) => wrapWithDiffClass(span.text, span.diffType)).join('')
       return `<p>${spanHtml}</p>`
-    }).join('')
+    })
+    .join('')
+}
 
+export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: DiffPreviewProps) {
+  const htmlContent = useMemo(() => {
+    const chunks = buildChunksFromDiff(diff)
+    const paragraphs = buildParagraphsFromChunks(chunks)
+    const html = convertParagraphsToHtml(paragraphs)
     return html || '<p></p>'
   }, [diff])
 
@@ -145,20 +122,15 @@ export function DiffPreview({ diff, onAccept, onReject, onPageCountChange }: Dif
     immediatelyRender: false,
   })
 
-  // Update content when diff changes
   useEffect(() => {
-    if (editor && editor.getHTML() !== htmlContent) {
-      editor.commands.setContent(htmlContent)
+    if (editor?.getHTML() !== htmlContent) {
+      editor?.commands.setContent(htmlContent)
     }
   }, [editor, htmlContent])
 
   return (
     <div className="diff-preview-container">
-      <EditorContent
-        editor={editor}
-        className="prose prose-lg max-w-none [&_.ProseMirror]:outline-none"
-      />
-
+      <EditorContent editor={editor} className="prose prose-lg max-w-none [&_.ProseMirror]:outline-none" />
       <div className="diff-controls">
         <button className="diff-btn diff-btn-accept" onClick={onAccept}>
           ✓ Accept <kbd>Tab</kbd>

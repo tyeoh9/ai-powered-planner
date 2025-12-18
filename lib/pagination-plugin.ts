@@ -3,11 +3,6 @@ import { Plugin, PluginKey, Transaction } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { TextSelection } from '@tiptap/pm/state'
 import { measureLinesWithSpacers, calculatePageBreaks, getPageCount, PageBreak, areBreaksEqual } from './pagination-layout'
-import {
-  PAGE_GAP,
-  PAGE_PADDING_TOP,
-  PAGE_PADDING_BOTTOM,
-} from './pagination-engine'
 
 const paginationPluginKey = new PluginKey<PaginationPluginState>('paginationLayout')
 
@@ -64,6 +59,23 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
         view(editorView) {
           let rafId: number | null = null
 
+          const updatePageCount = (lines: any[], breaks: any[]) => {
+            const newPageCount = getPageCount(lines, breaks)
+            if (newPageCount !== lastPageCount) {
+              lastPageCount = newPageCount
+              onPageCountChange?.(newPageCount)
+            }
+          }
+
+          const createSpacerWidget = (pageBreak: PageBreak) => {
+            const spacer = document.createElement('div')
+            spacer.className = 'page-break-spacer'
+            spacer.style.height = `${pageBreak.spacerHeight}px`
+            spacer.setAttribute('data-page', String(pageBreak.pageNumber))
+            spacer.contentEditable = 'false'
+            return spacer
+          }
+
           const calculateLayout = () => {
             rafId = null
 
@@ -77,56 +89,27 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
             try {
               const currentState = paginationPluginKey.getState(editorView.state)
               const existingBreaks = currentState?.pageBreaks || []
-
-              // Measure lines - account for existing spacers in the measurement
               const lines = measureLinesWithSpacers(editorView, existingBreaks)
               const pageBreaks = calculatePageBreaks(lines)
 
-              // Check if breaks changed (positions or count)
-              const breaksChanged = !areBreaksEqual(existingBreaks, pageBreaks)
+              if (!areBreaksEqual(existingBreaks, pageBreaks)) {
+                const decorations = pageBreaks.map((pageBreak) =>
+                  Decoration.widget(pageBreak.pos, () => createSpacerWidget(pageBreak), {
+                    side: -1,
+                    key: `page-break-${pageBreak.pageNumber}`,
+                  })
+                )
 
-              if (!breaksChanged) {
-                // Layout stable, just update page count if needed
-                const newPageCount = getPageCount(lines, pageBreaks)
-                if (newPageCount !== lastPageCount) {
-                  lastPageCount = newPageCount
-                  onPageCountChange?.(newPageCount)
-                }
-                return
+                const decorationSet = DecorationSet.create(editorView.state.doc, decorations)
+                const tr = editorView.state.tr
+                  .setMeta(paginationPluginKey, { decorations: decorationSet, pageBreaks })
+                  .setMeta('addToHistory', false)
+                editorView.dispatch(tr)
               }
 
-              // Create decorations
-              const decorations = pageBreaks.map((pageBreak) => {
-                return Decoration.widget(pageBreak.pos, () => {
-                  const spacerWidget = document.createElement('div')
-                  spacerWidget.className = 'page-break-spacer'
-                  spacerWidget.style.height = `${pageBreak.spacerHeight}px`
-                  spacerWidget.setAttribute('data-page', String(pageBreak.pageNumber))
-                  spacerWidget.contentEditable = 'false'
-                  return spacerWidget
-                }, {
-                  side: -1,
-                  key: `page-break-${pageBreak.pageNumber}`,
-                })
-              })
-
-              const decorationSet = DecorationSet.create(editorView.state.doc, decorations)
-
-              const tr = editorView.state.tr.setMeta(paginationPluginKey, {
-                decorations: decorationSet,
-                pageBreaks,
-              })
-              tr.setMeta('addToHistory', false)
-              editorView.dispatch(tr)
-
-              const newPageCount = getPageCount(lines, pageBreaks)
-              if (newPageCount !== lastPageCount) {
-                lastPageCount = newPageCount
-                onPageCountChange?.(newPageCount)
-              }
+              updatePageCount(lines, pageBreaks)
             } finally {
               isCalculating = false
-
               if (pendingCalculation) {
                 rafId = requestAnimationFrame(calculateLayout)
               }
@@ -162,17 +145,14 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
           },
 
           handleKeyDown(view, event) {
-            if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
-              return false
-            }
+            const isArrowKey = event.key === 'ArrowDown' || event.key === 'ArrowUp'
+            if (!isArrowKey) return false
 
             const { state } = view
-            const { selection } = state
             const pluginState = paginationPluginKey.getState(state)
-
             if (!pluginState?.pageBreaks?.length) return false
 
-            const coords = view.coordsAtPos(selection.head)
+            const coords = view.coordsAtPos(state.selection.head)
             const editorRect = view.dom.getBoundingClientRect()
             const relativeY = coords.top - editorRect.top
 
@@ -181,32 +161,23 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
               const breakY = breakCoords.top - editorRect.top
               const afterBreakY = breakY + pageBreak.spacerHeight
 
-              if (event.key === 'ArrowDown') {
-                // If cursor is near the bottom of the page (before the spacer)
-                if (relativeY >= breakY - 30 && relativeY < afterBreakY) {
-                  const targetY = editorRect.top + afterBreakY + 10
-                  const targetPos = view.posAtCoords({ left: coords.left, top: targetY })
-                  if (targetPos) {
-                    const resolvedPos = state.doc.resolve(targetPos.pos)
-                    const tr = state.tr.setSelection(TextSelection.near(resolvedPos))
-                    view.dispatch(tr)
-                    return true
-                  }
-                }
-              }
+              const shouldJumpDown = event.key === 'ArrowDown' &&
+                relativeY >= breakY - 30 && relativeY < afterBreakY
+              const shouldJumpUp = event.key === 'ArrowUp' &&
+                state.selection.head >= pageBreak.pos &&
+                relativeY >= afterBreakY &&
+                relativeY <= afterBreakY + 50
 
-              if (event.key === 'ArrowUp') {
-                // If cursor is on the first line after the spacer (within ~50px of spacer end)
-                // Check if cursor position is right after this page break
-                if (selection.head >= pageBreak.pos && relativeY >= afterBreakY && relativeY <= afterBreakY + 50) {
-                  const targetY = editorRect.top + breakY - 10
-                  const targetPos = view.posAtCoords({ left: coords.left, top: targetY })
-                  if (targetPos) {
-                    const resolvedPos = state.doc.resolve(targetPos.pos)
-                    const tr = state.tr.setSelection(TextSelection.near(resolvedPos))
-                    view.dispatch(tr)
-                    return true
-                  }
+              if (shouldJumpDown || shouldJumpUp) {
+                const targetY = shouldJumpDown
+                  ? editorRect.top + afterBreakY + 10
+                  : editorRect.top + breakY - 10
+                const targetPos = view.posAtCoords({ left: coords.left, top: targetY })
+
+                if (targetPos) {
+                  const tr = state.tr.setSelection(TextSelection.near(state.doc.resolve(targetPos.pos)))
+                  view.dispatch(tr)
+                  return true
                 }
               }
             }

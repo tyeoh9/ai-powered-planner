@@ -5,9 +5,6 @@ import { useEditorStore } from '@/store/editor-store'
 import { computeDiff, hasChanges } from '@/utils/diff'
 import { SUGGESTION_DEBOUNCE_MS, MIN_CONTENT_LENGTH_FOR_SUGGESTION } from '@/lib/constants'
 
-/**
- * Reads the complete response from a streaming API
- */
 async function readStreamResponse(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<string> {
   const decoder = new TextDecoder()
   let content = ''
@@ -21,13 +18,8 @@ async function readStreamResponse(reader: ReadableStreamDefaultReader<Uint8Array
   return content.trim()
 }
 
-/**
- * Handles errors from suggestion fetching
- */
 function handleSuggestionError(error: unknown): void {
-  if ((error as Error).name === 'AbortError') {
-    return
-  }
+  if ((error as Error).name === 'AbortError') return
 
   console.error('Suggestion error:', error)
   const message = error instanceof Error ? error.message : 'Failed to generate suggestion'
@@ -37,19 +29,13 @@ function handleSuggestionError(error: unknown): void {
 export function useSuggestion() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-  const shouldBlockAutoTriggerRef = useRef<boolean>(false)
+  const shouldBlockAutoTriggerRef = useRef(false)
   const isCurrentlyGeneratingRef = useRef(false)
 
   const fetchSuggestion = useCallback(async (content: string) => {
-    if (isCurrentlyGeneratingRef.current) {
-      return
-    }
+    if (isCurrentlyGeneratingRef.current) return
 
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
+    abortControllerRef.current?.abort()
     abortControllerRef.current = new AbortController()
     isCurrentlyGeneratingRef.current = true
 
@@ -105,18 +91,11 @@ export function useSuggestion() {
 
   const triggerSuggestion = useCallback(
     (content: string, _position: number, isManualEdit: boolean = true) => {
-      // Clear any existing debounce timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
-      // Check if autocomplete is disabled
       const store = useEditorStore.getState()
-      if (!store.isAutocompleteEnabled) {
-        return
-      }
+      if (!store.isAutocompleteEnabled) return
 
-      // Check if auto-trigger is blocked (after accepting/rejecting a suggestion)
       if (shouldBlockAutoTriggerRef.current) {
         if (isManualEdit) {
           shouldBlockAutoTriggerRef.current = false
@@ -125,12 +104,8 @@ export function useSuggestion() {
         }
       }
 
-      // Don't suggest for content that's too short
-      if (content.length < MIN_CONTENT_LENGTH_FOR_SUGGESTION) {
-        return
-      }
+      if (content.length < MIN_CONTENT_LENGTH_FOR_SUGGESTION) return
 
-      // Debounce the suggestion fetch
       debounceTimerRef.current = setTimeout(() => {
         fetchSuggestion(content)
       }, SUGGESTION_DEBOUNCE_MS)
@@ -143,12 +118,8 @@ export function useSuggestion() {
   }, [])
 
   const cancelSuggestion = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    abortControllerRef.current?.abort()
 
     const store = useEditorStore.getState()
     store.setSuggestion(null)
