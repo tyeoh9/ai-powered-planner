@@ -50,6 +50,10 @@ interface EditorState {
   // Patch context for lazy generation
   patchContext: string
   setPatchContext: (ctx: string) => void
+
+  // Track last edit position for consistency anchor
+  lastEditPosition: number
+  setLastEditPosition: (pos: number) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -112,4 +116,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Patch context
   patchContext: '',
   setPatchContext: (ctx) => set({ patchContext: ctx }),
+
+  // Last edit position
+  lastEditPosition: 0,
+  setLastEditPosition: (pos) => set({ lastEditPosition: pos }),
 }))

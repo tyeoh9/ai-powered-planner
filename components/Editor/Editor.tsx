@@ -17,7 +17,7 @@ import { EDITOR_PLACEHOLDER } from '@/lib/constants'
 import { PAGE_HEIGHT, PAGE_GAP, PAGE_PADDING_TOP, calculateTotalHeight } from '@/lib/pagination-engine'
 
 export function Editor() {
-  const { setContent, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled, isAuditing } =
+  const { setContent, setLastEditPosition, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled, isAuditing } =
     useEditorStore()
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
   const { auditAfterAccept, debugAudit } = useSemanticMonitor()
@@ -36,9 +36,12 @@ export function Editor() {
   const handleContentChange = useCallback(
     (content: string, cursorPosition: number, isManualEdit: boolean) => {
       setContent(content)
+      if (isManualEdit) {
+        setLastEditPosition(cursorPosition)
+      }
       triggerSuggestion(content, cursorPosition, isManualEdit)
     },
-    [setContent, triggerSuggestion]
+    [setContent, setLastEditPosition, triggerSuggestion]
   )
 
   const editor = useEditor({

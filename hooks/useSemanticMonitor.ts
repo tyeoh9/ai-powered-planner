@@ -153,6 +153,7 @@ export function useSemanticMonitor() {
 
   /**
    * Debug audit - for testing via Check Consistency button
+   * Uses lastEditPosition from store to find the anchor chunk
    */
   const debugAudit = useCallback(
     async (content: string) => {
@@ -175,25 +176,31 @@ export function useSemanticMonitor() {
 
         setChunks(allChunks)
 
-        // Treat first chunk as the "edited" chunk, check all others
-        const firstChunk = allChunks[0]
-        const otherChunks = allChunks.slice(1).map((c) => ({
-          chunkId: c.id,
-          content: c.content,
-        }))
+        // Find anchor chunk based on last edit position
+        const { lastEditPosition } = useEditorStore.getState()
+        const anchorChunk = allChunks.find(
+          (c) => lastEditPosition >= c.startOffset && lastEditPosition <= c.endOffset
+        ) || allChunks[0]
 
-        console.log('[DEBUG AUDIT] First chunk:', firstChunk.content.slice(0, 50))
+        const otherChunks = allChunks
+          .filter((c) => c.id !== anchorChunk.id)
+          .map((c) => ({
+            chunkId: c.id,
+            content: c.content,
+          }))
+
+        console.log('[DEBUG AUDIT] Anchor chunk:', anchorChunk.content.slice(0, 50))
         console.log('[DEBUG AUDIT] Checking', otherChunks.length, 'other chunks')
 
-        // Ask LLM which chunks are inconsistent with the first chunk
-        const analyses = await analyzeChunks('', firstChunk.content, otherChunks)
+        // Ask LLM which chunks are inconsistent with the anchor chunk
+        const analyses = await analyzeChunks('', anchorChunk.content, otherChunks)
         console.log('[DEBUG AUDIT] Analysis:', analyses)
 
         const needsUpdate = analyses.filter((a) => a.conflictType === 'needs_update')
         console.log('[DEBUG AUDIT] Need update:', needsUpdate.length)
 
         if (needsUpdate.length === 0) {
-          alert('All chunks are consistent with the first paragraph')
+          alert('All chunks are consistent with the anchor paragraph')
           setIsAuditing(false)
           return
         }
@@ -210,7 +217,7 @@ export function useSemanticMonitor() {
           }
         })
 
-        setPatchContext(`Checking consistency with: "${firstChunk.content.slice(0, 100)}..."`)
+        setPatchContext(`Checking consistency with: "${anchorChunk.content.slice(0, 100)}..."`)
         setDirtyQueue(dirtyChunks)
       } catch (error) {
         console.error('[DEBUG AUDIT] Error:', error)
