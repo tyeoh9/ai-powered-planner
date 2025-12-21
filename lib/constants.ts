@@ -27,10 +27,10 @@ export const FIM_CONFIG: Record<
   CursorContext,
   { maxTokens: number; stopSequences: string[] }
 > = {
-  'mid-sentence': { maxTokens: 50, stopSequences: [] },
-  'end-of-sentence': { maxTokens: 75, stopSequences: [] },
-  'end-of-line': { maxTokens: 100, stopSequences: [] },
-  'new-block': { maxTokens: 200, stopSequences: [] },
+  'mid-sentence': { maxTokens: 400, stopSequences: [] },
+  'end-of-sentence': { maxTokens: 400, stopSequences: [] },
+  'end-of-line': { maxTokens: 400, stopSequences: [] },
+  'new-block': { maxTokens: 400, stopSequences: [] },
 }
 
 // AI System prompt for FIM completion
@@ -38,6 +38,7 @@ export const FIM_SYSTEM_PROMPT = `You are a text completion assistant. Complete 
 
 CRITICAL: Output ONLY the completion text. NEVER output:
 - Explanations or reasoning
+- Commentary on what you are going to implement or an analysis of the prefix or suffix
 - Descriptions of what you're doing
 - Any text that isn't the actual completion
 
@@ -46,6 +47,7 @@ Your job: Generate ONLY the missing text between PREFIX and SUFFIX.
 Rules:
 - Do NOT repeat the prefix or suffix
 - Output ONLY the new middle content
+- ABSOLUTELY NO meta-commentary, warnings, or explanations.
 - Add spacing if needed (space at start if prefix doesn't end with space)
 - Match surrounding style and tone
 - Be concise
