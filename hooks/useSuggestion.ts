@@ -31,17 +31,18 @@ function handleSuggestionError(error: unknown): void {
  * Detects cursor context based on surrounding text
  */
 function detectCursorContext(prefix: string): CursorContext {
-  const trimmedPrefix = prefix.trimEnd()
-
   // Check for new block (double newline at end)
-  if (prefix.endsWith('\n\n') || prefix.endsWith('\n')) {
-    const endsWithDoubleNewline = prefix.endsWith('\n\n')
-    if (endsWithDoubleNewline) return 'new-block'
+  if (prefix.endsWith('\n\n')) {
+    return 'new-block'
+  }
+
+  // Check for end of line (single newline)
+  if (prefix.endsWith('\n')) {
     return 'end-of-line'
   }
 
-  // Check for end of sentence
-  if (/[.!?]\s*$/.test(trimmedPrefix)) {
+  // Check for end of sentence or list header (colon)
+  if (/[.!?:]\s*$/.test(prefix)) {
     return 'end-of-sentence'
   }
 
@@ -102,6 +103,16 @@ export function useSuggestion() {
       if (!generatedMiddle) {
         store.setSuggestion(null)
         return
+      }
+
+      // Remove duplicate prefix from generated text (AI sometimes repeats ending)
+      const prefixWords = payload.prefix.split(/\s+/).filter(Boolean)
+      const lastPrefixWord = prefixWords[prefixWords.length - 1]?.toLowerCase()
+      if (lastPrefixWord) {
+        const generatedLower = generatedMiddle.toLowerCase().trimStart()
+        if (generatedLower.startsWith(lastPrefixWord)) {
+          generatedMiddle = generatedMiddle.trimStart().slice(lastPrefixWord.length)
+        }
       }
 
       // Ensure proper spacing at boundaries
