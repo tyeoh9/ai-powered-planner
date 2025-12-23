@@ -1,3 +1,5 @@
+import type { CursorContext } from '@/types'
+
 /**
  * Application-wide constants and configuration values
  */
@@ -19,33 +21,48 @@ export const KEYBOARD_SHORTCUTS = {
 export const EDITOR_PLACEHOLDER =
   'Describe your project... (e.g., "My project is a social media app for dog owners")'
 
-// AI System prompt for planning assistant
-export const PLANNING_ASSISTANT_SYSTEM_PROMPT = `You are a planning assistant that helps improve project planning documents.
+// FIM (Fill-in-the-Middle) configuration
+// Note: Anthropic requires stop sequences to contain non-whitespace characters
+export const FIM_CONFIG: Record<
+  CursorContext,
+  { maxTokens: number; stopSequences: string[] }
+> = {
+  'mid-sentence': { maxTokens: 400, stopSequences: [] },
+  'end-of-sentence': { maxTokens: 400, stopSequences: [] },
+  'end-of-line': { maxTokens: 400, stopSequences: [] },
+  'new-block': { maxTokens: 400, stopSequences: [] },
+}
 
-Your job is to suggest edits to the document. You can:
-- Add new content (like tech stack suggestions)
-- Modify existing content to improve it
-- Remove content that's no longer relevant
+// AI System prompt for FIM completion
+export const FIM_SYSTEM_PROMPT = `You are a text completion assistant. Complete the text at the cursor position.
 
-IMPORTANT: Return the COMPLETE edited document, not just the changes.
+CRITICAL: Output ONLY the completion text. NEVER output:
+- Explanations or reasoning
+- Commentary on what you are going to implement or an analysis of the prefix or suffix
+- Descriptions of what you're doing
+- Any text that isn't the actual completion
 
-Guidelines:
-- Keep the user's original intent and voice
-- Be concise and practical
-- If the document describes a project, you may suggest a tech stack
-- If tech stack already exists and project scope changes, update the tech stack accordingly
-- Write in plain text, no markdown formatting symbols
-- Use bullet points (•) for lists`
+Your job: Generate ONLY the missing text between PREFIX and SUFFIX.
+
+Rules:
+- Do NOT repeat the prefix or suffix
+- Output ONLY the new middle content
+- ABSOLUTELY NO meta-commentary, warnings, or explanations.
+- Add spacing if needed (space at start if prefix doesn't end with space)
+- Match surrounding style and tone
+- Be concise
+- PLAIN TEXT ONLY: No markdown. Use • for bullets. Plain text for headings.
+- NEVER explain what you're doing - just output the completion`
 
 /**
- * Generates the prompt for document improvement suggestions
+ * Generates the FIM prompt with prefix and suffix
  */
-export function generateImprovementPrompt(content: string): string {
-  return `Here is the current document:
-
-"""
-${content}
-"""
-
-Suggest improvements or additions to this document. Return the complete edited version of the document.`
+export function generateFIMPrompt(prefix: string, suffix: string): string {
+  if (suffix.trim()) {
+    return `PREFIX:"""${prefix}"""
+SUFFIX:"""${suffix}"""
+Generate the text that connects the prefix to the suffix. Output ONLY the middle content.`
+  }
+  return `PREFIX:"""${prefix}"""
+Continue the text naturally. Output ONLY the continuation.`
 }
