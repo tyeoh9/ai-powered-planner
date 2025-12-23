@@ -4,7 +4,7 @@ import { signOut, useSession } from 'next-auth/react'
 
 export function SignOutButton() {
   const { data: session } = useSession()
-  const userName = session?.user?.name || session?.user?.email?.split('@')[0]
+  const userName = session?.user?.name || (session?.user?.email?.includes('@') ? session.user.email.split('@')[0] : session?.user?.email)
 
   return (
     <div className="user-menu">
