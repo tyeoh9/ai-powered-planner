@@ -115,8 +115,9 @@ export function useSemanticMonitor() {
         })
 
         // 8. Store context for patch generation
+        const truncate = (s: string, max: number) => [...s].slice(0, max).join('')
         setPatchContext(
-          `The user changed: "${editedChunkBefore.slice(0, 100)}..." to "${editedChunkAfter.slice(0, 100)}..."`
+          `The user changed: "${truncate(editedChunkBefore, 100)}..." to "${truncate(editedChunkAfter, 100)}..."`
         )
 
         // 9. Set dirty queue

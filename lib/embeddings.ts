@@ -32,10 +32,9 @@ async function getEmbeddingPipeline() {
 
   isLoading = true
   loadPromise = (async () => {
-    // Dynamic import in browser
-    const module = await new Function(
-      'return import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2")'
-    )()
+    // Dynamic import from CDN
+    // @ts-expect-error - dynamic import from URL
+    const module = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2')
 
     embeddingPipeline = await module.pipeline(
       'feature-extraction',
