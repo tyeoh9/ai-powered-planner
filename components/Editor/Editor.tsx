@@ -20,7 +20,7 @@ export function Editor() {
   const { setContent, setLastEditPosition, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled, isAuditing } =
     useEditorStore()
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
-  const { auditAfterAccept, debugAudit } = useSemanticMonitor()
+  const { auditAfterAccept } = useSemanticMonitor()
   const {
     currentDirtyChunk,
     hasDirtyQueue,
@@ -101,20 +101,6 @@ export function Editor() {
     rejectSuggestion()
     cancelSuggestion()
   }, [rejectSuggestion, cancelSuggestion, blockUntilManualEdit])
-
-  const handleCheckConsistency = useCallback(() => {
-    console.log('[DEBUG] Check Consistency button clicked')
-    const { content } = useEditorStore.getState()
-    console.log('[DEBUG] Content length:', content?.length || 0)
-
-    if (!content) {
-      alert('Content is empty')
-      return
-    }
-
-    console.log('[DEBUG] Calling debugAudit...')
-    debugAudit(content)
-  }, [debugAudit])
 
   // Wrapper to sync editor with store after accepting patch
   const acceptCurrentPatch = useCallback(() => {
@@ -253,14 +239,6 @@ export function Editor() {
       >
         <span className={`toggle-indicator ${isAutocompleteEnabled ? 'active' : ''}`} />
         <span>AI Suggestions</span>
-      </button>
-
-      <button
-        onClick={handleCheckConsistency}
-        className="check-consistency-btn"
-        title="Debug: Check document consistency"
-      >
-        Check Consistency
       </button>
     </div>
   )
