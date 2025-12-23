@@ -1,6 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic'
 import { streamText } from 'ai'
 import { DEFAULT_AI_MODEL } from '@/lib/constants'
+import { auth } from '@/lib/auth'
 import type { ConflictAnalysis, CursorContext } from '@/types'
 
 export const runtime = 'edge'
@@ -101,6 +102,11 @@ function buildPatchPrompt(req: PatchRequest): string {
 
 export async function POST(req: Request) {
   try {
+    const session = await auth()
+    if (!session) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+
     const body = (await req.json()) as PatchRequest
 
     if (!validateApiKey()) {

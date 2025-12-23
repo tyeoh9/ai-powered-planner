@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { DEFAULT_AI_MODEL } from '@/lib/constants'
+import { auth } from '@/lib/auth'
 import type { ConflictAnalysis, ConflictType } from '@/types'
 
 export const runtime = 'edge'
@@ -92,6 +93,11 @@ Analyze each chunk. Does it contain anything that now conflicts with or is incon
 
 export async function POST(req: Request) {
   try {
+    const session = await auth()
+    if (!session) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+
     const body = (await req.json()) as AnalyzeRequest
 
     if (!validateApiKey()) {
