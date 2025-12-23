@@ -188,8 +188,8 @@ export function findStaleReferences(
 
     references.push({
       start: index,
-      end: index + oldTerm.length,
-      oldText: chunkContent.slice(index, index + oldTerm.length),
+      end: index + lowerOld.length,
+      oldText: chunkContent.slice(index, index + lowerOld.length),
       newText: newTerm,
     })
 

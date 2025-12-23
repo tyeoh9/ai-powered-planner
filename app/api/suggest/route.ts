@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return createErrorResponse('ANTHROPIC_API_KEY is not configured')
     }
 
-    const config = FIM_CONFIG[cursorContext]
+    const config = FIM_CONFIG[cursorContext] ?? FIM_CONFIG['end-of-sentence']
 
     const result = streamText({
       model: anthropic(getAiModel()),

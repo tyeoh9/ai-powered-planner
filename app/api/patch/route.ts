@@ -55,7 +55,7 @@ function getAiModel(): string {
 
 function buildPatchPrompt(req: PatchRequest): string {
   // Add position-based output length guidance
-  const positionPrompt = req.cursorContext
+  const positionPrompt = req.cursorContext && POSITION_PROMPTS[req.cursorContext]
     ? POSITION_PROMPTS[req.cursorContext]
     : POSITION_PROMPTS['end-of-sentence']
 

@@ -152,17 +152,22 @@ export function Editor() {
   useEffect(() => {
     if (!currentDirtyChunk || currentDirtyChunk.patch) return
 
+    let cancelled = false
     const { chunks, patchContext } = useEditorStore.getState()
 
     generateChunkPatch(currentDirtyChunk, chunks, patchContext)
       .then(patch => {
-        if (patch) {
+        if (patch && !cancelled) {
           updateChunkPatch(currentDirtyChunk.chunkId, patch)
         }
       })
       .catch(err => {
-        console.error('Lazy patch generation failed:', err)
+        if (!cancelled) {
+          console.error('Lazy patch generation failed:', err)
+        }
       })
+
+    return () => { cancelled = true }
   }, [currentDirtyChunk?.chunkId, updateChunkPatch])
 
   const hasSuggestion = !!suggestion?.diff?.length

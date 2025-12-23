@@ -6,48 +6,12 @@ let isLoading = false
 let loadPromise: Promise<unknown> | null = null
 
 const SIMILARITY_THRESHOLD = 0.75
-const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2'
-
-declare global {
-  interface Window {
-    TransformersApi?: {
-      pipeline: (task: string, model: string) => Promise<unknown>
-    }
-  }
-}
 
 /**
  * Check if running in browser
  */
 function isBrowser(): boolean {
   return typeof window !== 'undefined'
-}
-
-/**
- * Load transformers library via script tag
- */
-function loadTransformersScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Check if already loaded
-    if (window.TransformersApi) {
-      resolve()
-      return
-    }
-
-    // Check if script is already in DOM
-    const existingScript = document.querySelector(`script[src="${TRANSFORMERS_CDN}"]`)
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve())
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = TRANSFORMERS_CDN
-    script.type = 'module'
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load transformers library'))
-    document.head.appendChild(script)
-  })
 }
 
 /**
@@ -68,11 +32,7 @@ async function getEmbeddingPipeline() {
 
   isLoading = true
   loadPromise = (async () => {
-    // Load via script tag and use global
-    await loadTransformersScript()
-
-    // Access the library from the global scope
-    // The CDN exposes it differently - need to use dynamic import in browser
+    // Dynamic import in browser
     const module = await new Function(
       'return import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2")'
     )()
