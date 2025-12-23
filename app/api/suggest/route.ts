@@ -6,6 +6,7 @@ import {
   FIM_CONFIG,
   generateFIMPrompt,
 } from '@/lib/constants'
+import { auth } from '@/lib/auth'
 import type { FIMPayload } from '@/types'
 
 export const runtime = 'edge'
@@ -36,6 +37,11 @@ function getAiModel(): string {
 
 export async function POST(req: Request) {
   try {
+    const session = await auth()
+    if (!session) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+
     const { prefix, suffix, cursorContext } = (await req.json()) as FIMPayload
 
     if (!validateApiKey()) {

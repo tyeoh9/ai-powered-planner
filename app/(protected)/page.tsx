@@ -1,8 +1,10 @@
 import { Editor } from '@/components/Editor/Editor'
+import { SignOutButton } from '@/components/SignOutButton'
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-100 py-16">
+      <SignOutButton />
       <div className="max-w-5xl mx-auto px-8">
         <header className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 tracking-tight mb-3">
