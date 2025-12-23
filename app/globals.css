@@ -502,12 +502,24 @@
   height: 20px;
 }
 
-/* Sign out button */
-.sign-out-button {
+/* User menu */
+.user-menu {
   position: fixed;
   top: 16px;
   right: 16px;
   z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sign-out-button {
   padding: 8px 16px;
   background: white;
   border: 1px solid #e5e7eb;
@@ -551,9 +563,17 @@
     width: calc(100% - 16px);
   }
 
-  .sign-out-button {
+  .user-menu {
     top: 8px;
     right: 8px;
+    gap: 8px;
+  }
+
+  .user-name {
+    font-size: 12px;
+  }
+
+  .sign-out-button {
     padding: 6px 12px;
     font-size: 12px;
   }

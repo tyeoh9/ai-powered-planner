@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
-// import { Geist, Geist_Mono } from 'next/font/google'
-// import './globals.css'
 import { Lora } from 'next/font/google'
+import { Providers } from '@/components/Providers'
 import './globals.css'
 
 // const geistSans = Geist({
@@ -32,8 +31,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body> */}
-      <body className={`${lora.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${lora.variable} font-sans antialiased`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }
