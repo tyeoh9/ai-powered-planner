@@ -1,24 +1,34 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { useEditorStore } from '@/store/editor-store'
+import { useDocumentStore } from '@/store/document-store'
 import { useSuggestion } from '@/hooks/useSuggestion'
 import { useKeyboardShortcuts, useDirtyQueueShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useSemanticMonitor } from '@/hooks/useSemanticMonitor'
 import { useDirtyQueue } from '@/hooks/useDirtyQueue'
+import { useAutoSave } from '@/hooks/useAutoSave'
 import { DiffPreview } from './DiffPreview'
 import { DirtyChunkIndicator } from './DirtyChunkIndicator'
+import { DocumentHeader } from './DocumentHeader'
 import { generateChunkPatch } from '@/lib/chunk-patcher'
 import { PaginationPlugin } from '@/lib/pagination-plugin'
 import { EDITOR_PLACEHOLDER } from '@/lib/constants'
 import { PAGE_HEIGHT, PAGE_GAP, PAGE_PADDING_TOP, calculateTotalHeight } from '@/lib/pagination-engine'
 
-export function Editor() {
+interface EditorProps {
+  documentId?: string
+  initialTitle?: string
+  initialContent?: JSONContent
+}
+
+export function Editor({ documentId, initialTitle, initialContent }: EditorProps) {
   const { setContent, setLastEditPosition, suggestion, acceptSuggestion, rejectSuggestion, isGenerating, error, isAutocompleteEnabled, setAutocompleteEnabled, isAuditing } =
     useEditorStore()
+  const { setCurrentDoc, markDirty } = useDocumentStore()
   const { triggerSuggestion, cancelSuggestion, blockUntilManualEdit } = useSuggestion()
   const { auditAfterAccept } = useSemanticMonitor()
   const {
@@ -32,16 +42,25 @@ export function Editor() {
   } = useDirtyQueue()
   const isInsertingSuggestionRef = useRef(false)
   const [pageCount, setPageCount] = useState(1)
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null)
+
+  // Initialize document store
+  useEffect(() => {
+    if (documentId) {
+      setCurrentDoc(documentId, initialTitle || 'Untitled')
+    }
+  }, [documentId, initialTitle, setCurrentDoc])
 
   const handleContentChange = useCallback(
     (content: string, cursorPosition: number, isManualEdit: boolean) => {
       setContent(content)
       if (isManualEdit) {
         setLastEditPosition(cursorPosition)
+        markDirty()
       }
       triggerSuggestion(content, cursorPosition, isManualEdit)
     },
-    [setContent, setLastEditPosition, triggerSuggestion]
+    [setContent, setLastEditPosition, markDirty, triggerSuggestion]
   )
 
   const editor = useEditor({
@@ -56,7 +75,7 @@ export function Editor() {
         },
       }),
     ],
-    content: '',
+    content: initialContent || '',
     immediatelyRender: false,
     onUpdate: ({ editor, transaction }) => {
       if (isInsertingSuggestionRef.current) return
@@ -65,6 +84,18 @@ export function Editor() {
       handleContentChange(text, Math.max(0, cursorPosition), true)
     },
   })
+
+  // Store editor ref for auto-save
+  useEffect(() => {
+    (editorRef as React.MutableRefObject<typeof editor>).current = editor
+  }, [editor])
+
+  // Auto-save hook
+  const getEditorContent = useCallback(() => {
+    return editorRef.current?.getJSON()
+  }, [])
+
+  useAutoSave(getEditorContent)
 
   const convertTextToHtml = (text: string): string => {
     return text
@@ -91,10 +122,11 @@ export function Editor() {
     }, 200)
 
     acceptSuggestion()
+    markDirty()
 
     // Trigger semantic audit after accepting
     auditAfterAccept(oldContent, newContent, editPosition)
-  }, [suggestion, editor, acceptSuggestion, blockUntilManualEdit, auditAfterAccept])
+  }, [suggestion, editor, acceptSuggestion, markDirty, blockUntilManualEdit, auditAfterAccept])
 
   const handleRejectSuggestion = useCallback(() => {
     blockUntilManualEdit()
@@ -119,9 +151,10 @@ export function Editor() {
         setTimeout(() => {
           isInsertingSuggestionRef.current = false
         }, 200)
+        markDirty()
       }
     }, 0)
-  }, [editor, acceptPatchBase])
+  }, [editor, acceptPatchBase, markDirty])
 
   useKeyboardShortcuts(!!suggestion && !hasDirtyQueue, {
     onAccept: handleAcceptSuggestion,
@@ -159,8 +192,16 @@ export function Editor() {
   const hasSuggestion = !!suggestion?.diff?.length
   const totalPagesHeight = calculateTotalHeight(pageCount)
 
+  // Only show document header if we have a documentId (i.e., editing a saved doc)
+  const showDocumentHeader = !!documentId
+
   return (
     <div className="relative">
+      {/* Document header with title and save */}
+      {showDocumentHeader && (
+        <DocumentHeader />
+      )}
+
       {/* Fixed AI thinking indicator pill */}
       {isGenerating && (
         <div className="thinking-pill">

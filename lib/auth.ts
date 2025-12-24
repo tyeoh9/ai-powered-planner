@@ -18,9 +18,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     authorized: async ({ auth }) => !!auth,
-    jwt: async ({ token, user }) => {
-      if (user) {
-        token.id = user.id
+    jwt: async ({ token, account, profile }) => {
+      // Use Google's stable 'sub' (subject) ID for consistent user identification
+      if (account && profile) {
+        token.id = profile.sub
       }
       return token
     },
