@@ -1,7 +1,10 @@
-import { Editor } from '@/components/Editor/Editor'
+import { getDocuments } from '@/lib/actions/documents'
+import { DocumentList } from '@/components/Documents/DocumentList'
 import { SignOutButton } from '@/components/SignOutButton'
 
-export default function Home() {
+export default async function Home() {
+  const documents = await getDocuments()
+
   return (
     <main className="min-h-screen bg-gray-100 py-16">
       <SignOutButton />
@@ -15,21 +18,7 @@ export default function Home() {
           </p>
         </header>
 
-        <Editor />
-
-        <footer className="mt-12 text-center text-sm text-gray-400">
-          <p>
-            Press{' '}
-            <kbd className="px-2.5 py-1 bg-white border border-gray-200 rounded-full font-mono text-xs shadow-sm">
-              Tab
-            </kbd>{' '}
-            to accept,{' '}
-            <kbd className="px-2.5 py-1 bg-white border border-gray-200 rounded-full font-mono text-xs shadow-sm">
-              Esc
-            </kbd>{' '}
-            to reject
-          </p>
-        </footer>
+        <DocumentList initialDocuments={documents} />
       </div>
     </main>
   )
