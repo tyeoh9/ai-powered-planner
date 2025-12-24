@@ -4,8 +4,8 @@ import Google from 'next-auth/providers/google'
 if (!process.env.AUTH_SECRET) {
   throw new Error('AUTH_SECRET environment variable is required')
 }
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required')
+if (!process.env.AUTH_GOOGLE_ID || !process.env.AUTH_GOOGLE_SECRET) {
+  throw new Error('AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET environment variables are required')
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
