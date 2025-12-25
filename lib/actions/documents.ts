@@ -9,6 +9,7 @@ export interface Document {
   user_id: string
   title: string
   content: JSONContent
+  folder_id: string | null
   created_at: string
   updated_at: string
 }
@@ -21,7 +22,7 @@ async function getUserId(): Promise<string> {
   return session.user.id
 }
 
-export async function createDocument(): Promise<{ id: string }> {
+export async function createDocument(folderId?: string | null): Promise<{ id: string }> {
   const userId = await getUserId()
 
   const { data, error } = await supabase
@@ -30,6 +31,7 @@ export async function createDocument(): Promise<{ id: string }> {
       user_id: userId,
       title: 'Untitled',
       content: { type: 'doc', content: [] },
+      folder_id: folderId || null,
     })
     .select('id')
     .single()
@@ -92,6 +94,21 @@ export async function deleteDocument(id: string): Promise<void> {
   const { error } = await supabase
     .from('documents')
     .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function moveDocument(id: string, folderId: string | null): Promise<void> {
+  const userId = await getUserId()
+
+  const { error } = await supabase
+    .from('documents')
+    .update({
+      folder_id: folderId,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
     .eq('user_id', userId)
 
