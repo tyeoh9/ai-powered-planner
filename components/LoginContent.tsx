@@ -43,6 +43,13 @@ export function LoginContent() {
           </svg>
           Get started with Google
         </button>
+
+        <div className="hero-demo">
+          <video autoPlay loop muted playsInline className="hero-demo-video">
+            <source src="/demo.mp4" type="video/mp4" />
+          </video>
+          <div className="hero-demo-fade" />
+        </div>
       </div>
     </main>
   )
