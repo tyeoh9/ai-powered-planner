@@ -4,6 +4,13 @@ A smart text editor with AI-powered autocomplete that understands context and ma
 
 ## Features
 
+<div align="center">
+   <video autoplay loop muted controls>
+   <source src="public/demo.mp4" type="video/mp4">
+   Your browser does not support the video tag.
+   </video>
+</div>
+
 ### Fill-in-the-Middle (FIM) Suggestions
 Context-aware text completions that understand both what comes before *and after* your cursor:
 

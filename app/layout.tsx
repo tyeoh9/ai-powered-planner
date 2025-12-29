@@ -1,22 +1,13 @@
 import type { Metadata } from 'next'
-import { Lora } from 'next/font/google'
+import { Fredoka } from 'next/font/google'
 import { Providers } from '@/components/Providers'
 import './globals.css'
 
-// const geistSans = Geist({
-//   variable: '--font-geist-sans',
-//   subsets: ['latin'],
-// })
-
-// const geistMono = Geist_Mono({
-//   variable: '--font-geist-mono',
-//   subsets: ['latin'],
-// })
-
-const lora = Lora({
-  variable: '--font-lora',
+const fredoka = Fredoka({
+  variable: '--font-fredoka',
   subsets: ['latin'],
   display: 'swap',
+  weight: ['300', '400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
@@ -31,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${lora.variable} font-sans antialiased`}>
+      <body className={`${fredoka.variable} ${fredoka.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
