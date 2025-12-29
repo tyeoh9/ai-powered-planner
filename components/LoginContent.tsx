@@ -17,9 +17,9 @@ export function LoginContent() {
         >
           Read the documentation for this project &gt;
         </a>
-        <h1 className="hero-title">Your AI writing companion</h1>
+        <h1 className="hero-title">An AI writing companion that thinks alongside you</h1>
         <p className="hero-subtitle">
-          Get intelligent suggestions as you write. Like Cursor, but for documents.
+          Real-time guidance and suggestions, seamlessly embedded in your documents.
         </p>
 
         <button onClick={() => signIn('google', { callbackUrl: '/' })} className="hero-cta">

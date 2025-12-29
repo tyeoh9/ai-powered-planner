@@ -12,7 +12,7 @@ export function NavBar() {
       <div className="navbar-content">
         {/* Left: Logo */}
         <Link href={session ? '/' : '/login'} className="navbar-logo">
-          <img src="/octopus.svg" alt="Inky" width={32} height={32} />
+          <img src="/octopus.svg?v=2" alt="Inky" width={32} height={32} />
           <span className="navbar-brand">inky</span>
         </Link>
 
