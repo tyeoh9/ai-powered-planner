@@ -1,51 +1,50 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { deleteDocument } from '@/lib/actions/documents'
+import { deleteFolder } from '@/lib/actions/folders'
 import { useFolderStore } from '@/store/folder-store'
 
-interface DocumentCardProps {
+interface FolderCardProps {
   id: string
-  title: string
-  updatedAt: string
+  name: string
   onDelete: (id: string) => void
-  onMoveClick?: (docId: string) => void
+  onMoveClick?: (id: string) => void
 }
 
-export function DocumentCard({ id, title, updatedAt, onDelete, onMoveClick }: DocumentCardProps) {
+export function FolderCard({ id, name, onDelete, onMoveClick }: FolderCardProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const { setDragItem } = useFolderStore()
+  const [error, setError] = useState<string | null>(null)
+  const { setCurrentFolder, setDragItem } = useFolderStore()
 
-  const formattedDate = new Date(updatedAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
 
-  async function handleDelete() {
     if (!confirmingDelete) {
       setConfirmingDelete(true)
       return
     }
 
     setIsDeleting(true)
+    setError(null)
     try {
-      await deleteDocument(id)
+      await deleteFolder(id)
       onDelete(id)
-    } catch (error) {
-      console.error('Failed to delete document:', error)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete folder'
+      setError(message)
       setIsDeleting(false)
       setConfirmingDelete(false)
     }
   }
 
+  function handleClick() {
+    setCurrentFolder(id)
+  }
+
   function handleDragStart(e: React.DragEvent) {
-    setDragItem({ type: 'document', id })
-    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'document', id }))
+    setDragItem({ type: 'folder', id })
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'folder', id }))
     e.dataTransfer.effectAllowed = 'move'
   }
 
@@ -62,16 +61,18 @@ export function DocumentCard({ id, title, updatedAt, onDelete, onMoveClick }: Do
 
   return (
     <div
-      className="document-card"
+      className="document-card folder-card"
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onContextMenu={handleContextMenu}
+      onClick={handleClick}
     >
-      <Link href={`/documents/${id}`} className="document-card-link">
-        <h3 className="document-card-title">{title || 'Untitled'}</h3>
-        <p className="document-card-date">{formattedDate}</p>
-      </Link>
+      <div className="folder-card-content">
+        <span className="folder-card-icon">📁</span>
+        <h3 className="document-card-title">{name || 'Untitled Folder'}</h3>
+      </div>
+      {error && <p className="folder-card-error">{error}</p>}
       <button
         onClick={handleDelete}
         onBlur={() => setConfirmingDelete(false)}
