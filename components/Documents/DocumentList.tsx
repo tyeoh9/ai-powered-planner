@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { DocumentCard } from './DocumentCard'
 import type { Document } from '@/lib/actions/documents'
 
@@ -27,6 +28,14 @@ export function DocumentList({ initialDocuments }: DocumentListProps) {
 
       {documents.length === 0 ? (
         <div className="document-list-empty">
+          <Image
+            src="/octopus_sleeping.svg"
+            alt="Sleeping octopus"
+            width={120}
+            height={120}
+            className="empty-state-image"
+            unoptimized
+          />
           <p>No documents yet</p>
           <Link href="/documents/new" className="new-document-button">
             Create your first document
