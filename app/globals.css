@@ -1635,11 +1635,14 @@
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border);
-  border-width: 1px 1px 0 1px; /* top right bottom left */
-  width: 200%;      /* wider than the hero text */
-  max-width: none;  /* ignore inherited max-width */
-  left: 50%;        /* start from the middle */
-  transform: translateX(-50%); /* shift back by 50% of its width */
+  border-width: 1px 1px 0 1px;
+
+  /* Make it very wide relative to text, but clamp to screen */
+  width: min(200%, 100vw);
+  
+  /* Center it horizontally */
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .hero-demo-video {
