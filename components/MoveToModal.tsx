@@ -43,18 +43,18 @@ export function MoveToModal({ item, onClose, onMoved }: MoveToModalProps) {
     setError(null)
     setIsMoving(true)
 
-    try {
-      if (item.type === 'document') {
-        await moveDocument(item.id, selectedFolderId)
-      } else {
-        await moveFolder(item.id, selectedFolderId)
-      }
-      onMoved()
-      onClose()
-    } catch (err: any) {
-      setError(err.message || 'Failed to move')
+    const result = item.type === 'document'
+      ? await moveDocument(item.id, selectedFolderId)
+      : await moveFolder(item.id, selectedFolderId)
+
+    if (!result.success) {
+      setError(result.error)
       setIsMoving(false)
+      return
     }
+
+    onMoved()
+    onClose()
   }
 
   function renderFolderList(parentId: string | null, level: number): React.ReactNode {

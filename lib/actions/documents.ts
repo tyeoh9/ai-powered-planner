@@ -149,8 +149,26 @@ export async function deleteDocument(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-export async function moveDocument(id: string, folderId: string | null): Promise<void> {
+export type MoveDocumentResult = { success: true } | { success: false; error: string }
+
+export async function moveDocument(id: string, folderId: string | null): Promise<MoveDocumentResult> {
   const userId = await getUserId()
+
+  // Get current document title
+  const { data: doc } = await supabase
+    .from('documents')
+    .select('title')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single()
+
+  if (!doc) return { success: false, error: 'Document not found' }
+
+  // Check for duplicate name in target folder
+  const exists = await checkDocumentNameExists(doc.title, folderId, id)
+  if (exists) {
+    return { success: false, error: 'A document with this name already exists in the target folder' }
+  }
 
   const { error } = await supabase
     .from('documents')
@@ -161,5 +179,6 @@ export async function moveDocument(id: string, folderId: string | null): Promise
     .eq('id', id)
     .eq('user_id', userId)
 
-  if (error) throw new Error(error.message)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
 }
