@@ -39,8 +39,44 @@ async function wouldCreateCircular(folderId: string, newParentId: string, folder
   return false
 }
 
-export async function createFolder(name: string, parentId?: string | null): Promise<Folder> {
+export async function checkFolderNameExists(
+  name: string,
+  parentId: string | null,
+  excludeId?: string
+): Promise<boolean> {
   const userId = await getUserId()
+  const normalizedName = name.trim().toLowerCase()
+
+  let query = supabase
+    .from('folders')
+    .select('id')
+    .eq('user_id', userId)
+    .ilike('name', normalizedName)
+
+  if (parentId === null) {
+    query = query.is('parent_id', null)
+  } else {
+    query = query.eq('parent_id', parentId)
+  }
+
+  if (excludeId) {
+    query = query.neq('id', excludeId)
+  }
+
+  const { data } = await query.limit(1)
+  return (data && data.length > 0) || false
+}
+
+export type CreateFolderResult = { success: true; folder: Folder } | { success: false; error: string }
+
+export async function createFolder(name: string, parentId?: string | null): Promise<CreateFolderResult> {
+  const userId = await getUserId()
+
+  // Check for duplicate name
+  const exists = await checkFolderNameExists(name, parentId || null)
+  if (exists) {
+    return { success: false, error: 'A folder with this name already exists' }
+  }
 
   if (parentId) {
     const { data: folders } = await supabase
@@ -50,7 +86,7 @@ export async function createFolder(name: string, parentId?: string | null): Prom
 
     const depth = await getFolderDepth(parentId, folders || [])
     if (depth >= MAX_DEPTH - 1) {
-      throw new Error(`Maximum folder depth of ${MAX_DEPTH} reached`)
+      return { success: false, error: `Maximum folder depth of ${MAX_DEPTH} reached` }
     }
   }
 
@@ -64,8 +100,8 @@ export async function createFolder(name: string, parentId?: string | null): Prom
     .select()
     .single()
 
-  if (error) throw new Error(error.message)
-  return data
+  if (error) return { success: false, error: error.message }
+  return { success: true, folder: data }
 }
 
 export async function getFolders(): Promise<Folder[]> {
@@ -98,8 +134,26 @@ export async function getFolder(id: string): Promise<Folder | null> {
   return data
 }
 
-export async function renameFolder(id: string, name: string): Promise<void> {
+export type RenameFolderResult = { success: true } | { success: false; error: string }
+
+export async function renameFolder(id: string, name: string): Promise<RenameFolderResult> {
   const userId = await getUserId()
+
+  // Get current folder to find parent_id
+  const { data: folder } = await supabase
+    .from('folders')
+    .select('parent_id')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single()
+
+  if (!folder) return { success: false, error: 'Folder not found' }
+
+  // Check for duplicate name (excluding self)
+  const exists = await checkFolderNameExists(name, folder.parent_id, id)
+  if (exists) {
+    return { success: false, error: 'A folder with this name already exists' }
+  }
 
   const { error } = await supabase
     .from('folders')
@@ -110,7 +164,8 @@ export async function renameFolder(id: string, name: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', userId)
 
-  if (error) throw new Error(error.message)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
 }
 
 export async function deleteFolder(id: string): Promise<void> {

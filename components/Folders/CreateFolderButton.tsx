@@ -9,63 +9,82 @@ interface CreateFolderButtonProps {
 }
 
 export function CreateFolderButton({ onCreated }: CreateFolderButtonProps) {
-  const [isCreating, setIsCreating] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { currentFolderId } = useFolderStore()
 
   async function handleCreate() {
-    if (!name.trim()) return
+    if (!name.trim() || isSubmitting) return
+    setError(null)
+    setIsSubmitting(true)
 
-    try {
-      await createFolder(name.trim(), currentFolderId)
-      setName('')
-      setIsCreating(false)
-      onCreated()
-    } catch (error: any) {
-      console.error('Failed to create folder:', error)
-      alert(error.message || 'Failed to create folder')
+    const result = await createFolder(name.trim(), currentFolderId)
+    setIsSubmitting(false)
+
+    if (!result.success) {
+      setError(result.error)
+      return
     }
+
+    setName('')
+    setIsOpen(false)
+    onCreated()
   }
 
-  if (isCreating) {
-    return (
-      <div className="create-folder-input-wrapper">
-        <input
-          type="text"
-          className="create-folder-input"
-          placeholder="Folder name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleCreate()
-            if (e.key === 'Escape') {
-              setIsCreating(false)
-              setName('')
-            }
-          }}
-          autoFocus
-        />
-        <div className="create-folder-actions">
-          <button className="create-folder-save" onClick={handleCreate}>
-            Create
-          </button>
-          <button
-            className="create-folder-cancel"
-            onClick={() => {
-              setIsCreating(false)
-              setName('')
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    )
+  function handleClose() {
+    setIsOpen(false)
+    setName('')
+    setError(null)
   }
 
   return (
-    <button className="create-folder-button" onClick={() => setIsCreating(true)}>
-      + New Folder
-    </button>
+    <>
+      <button className="new-document-button" onClick={() => setIsOpen(true)}>
+        + New Folder
+      </button>
+
+      {isOpen && (
+        <div className="modal-overlay" onClick={handleClose}>
+          <div className="create-folder-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-folder-modal-header">
+              <h3>Create New Folder</h3>
+              <button className="modal-close-btn" onClick={handleClose}>×</button>
+            </div>
+            <div className="create-folder-modal-body">
+              <input
+                type="text"
+                className={`create-folder-modal-input ${error ? 'input-error' : ''}`}
+                placeholder="Folder name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setError(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreate()
+                  if (e.key === 'Escape') handleClose()
+                }}
+                autoFocus
+              />
+              {error && <p className="input-error-message">{error}</p>}
+            </div>
+            <div className="create-folder-modal-actions">
+              <button className="modal-cancel-btn" onClick={handleClose}>
+                Cancel
+              </button>
+              <button
+                className="modal-create-btn"
+                onClick={handleCreate}
+                disabled={!name.trim() || isSubmitting}
+              >
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

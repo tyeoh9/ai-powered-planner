@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DocumentCard } from './DocumentCard'
-import { FolderTree } from '@/components/Folders/FolderTree'
+import { FolderCard } from '@/components/Folders/FolderCard'
+import { CreateFolderButton } from '@/components/Folders/CreateFolderButton'
 import { Breadcrumb } from '@/components/Folders/Breadcrumb'
 import { MoveToModal } from '@/components/MoveToModal'
 import { useFolderStore } from '@/store/folder-store'
@@ -24,7 +24,7 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
   const [folderPath, setFolderPath] = useState<Folder[]>([])
   const [moveModalItem, setMoveModalItem] = useState<{ type: 'folder' | 'document'; id: string } | null>(null)
 
-  const { currentFolderId, setFolders, setDocuments: setStoreDocuments, getDocumentsInFolder } = useFolderStore()
+  const { currentFolderId, setFolders, setDocuments: setStoreDocuments, getFolderChildren } = useFolderStore()
 
   useEffect(() => {
     setFolders(initialFolders)
@@ -59,8 +59,12 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
     setMoveModalItem({ type: 'document', id: docId })
   }
 
-  function handleFolderMoveModal(item: { type: 'folder' | 'document'; id: string }) {
-    setMoveModalItem(item)
+  function handleFolderMoveClick(folderId: string) {
+    setMoveModalItem({ type: 'folder', id: folderId })
+  }
+
+  function handleFolderDelete(id: string) {
+    setFolders(useFolderStore.getState().folders.filter(f => f.id !== id))
   }
 
   async function handleCreateDocument() {
@@ -72,45 +76,54 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
     ? documents.filter(doc => doc.folder_id === null)
     : documents.filter(doc => doc.folder_id === currentFolderId)
 
-  return (
-    <div className="document-page-layout">
-      <aside className="folder-sidebar">
-        <FolderTree onMoveToModal={handleFolderMoveModal} />
-      </aside>
+  const currentFolders = getFolderChildren(currentFolderId)
+  const isEmpty = filteredDocuments.length === 0 && currentFolders.length === 0
 
-      <main className="document-list-container">
-        <div className="document-list-header">
-          <div className="document-list-header-left">
-            <h1>My Documents</h1>
-            {folderPath.length > 0 && <Breadcrumb path={folderPath} />}
-          </div>
+  return (
+    <div className="document-list-container">
+      <div className="document-list-header">
+        <div className="document-list-header-left">
+          <h1>My Documents</h1>
+          {folderPath.length > 0 && <Breadcrumb path={folderPath} />}
+        </div>
+        <div className="document-list-header-buttons">
+          <CreateFolderButton onCreated={refreshData} />
           <button onClick={handleCreateDocument} className="new-document-button">
             + New Document
           </button>
         </div>
+      </div>
 
-        {filteredDocuments.length === 0 ? (
-          <div className="document-list-empty">
-            <p>{currentFolderId ? 'This folder is empty' : 'No documents yet'}</p>
-            <button onClick={handleCreateDocument} className="new-document-button">
-              Create {currentFolderId ? 'a document here' : 'your first document'}
-            </button>
-          </div>
-        ) : (
-          <div className="document-list">
-            {filteredDocuments.map(doc => (
-              <DocumentCard
-                key={doc.id}
-                id={doc.id}
-                title={doc.title}
-                updatedAt={doc.updated_at}
-                onDelete={handleDelete}
-                onMoveClick={handleMoveClick}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+      {isEmpty ? (
+        <div className="document-list-empty">
+          <p>{currentFolderId ? 'This folder is empty' : 'No documents yet'}</p>
+          <button onClick={handleCreateDocument} className="new-document-button">
+            Create {currentFolderId ? 'a document here' : 'your first document'}
+          </button>
+        </div>
+      ) : (
+        <div className="document-list">
+          {currentFolders.map(folder => (
+            <FolderCard
+              key={folder.id}
+              id={folder.id}
+              name={folder.name}
+              onDelete={handleFolderDelete}
+              onMoveClick={handleFolderMoveClick}
+            />
+          ))}
+          {filteredDocuments.map(doc => (
+            <DocumentCard
+              key={doc.id}
+              id={doc.id}
+              title={doc.title}
+              updatedAt={doc.updated_at}
+              onDelete={handleDelete}
+              onMoveClick={handleMoveClick}
+            />
+          ))}
+        </div>
+      )}
 
       {moveModalItem && (
         <MoveToModal
@@ -122,3 +135,4 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
     </div>
   )
 }
+

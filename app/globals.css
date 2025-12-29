@@ -666,6 +666,12 @@
   gap: 16px;
 }
 
+.document-title-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .back-button {
   padding: 8px 16px;
   background: white;
@@ -750,17 +756,35 @@
   cursor: not-allowed;
 }
 
-/* Folder System */
-.document-page-layout {
+/* Header buttons container */
+.document-list-header-buttons {
   display: flex;
-  gap: 24px;
+  gap: 12px;
 }
 
-.folder-sidebar {
-  width: 260px;
-  flex-shrink: 0;
+/* Folder Card */
+.folder-card {
+  cursor: pointer;
 }
 
+.folder-card-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.folder-card-icon {
+  font-size: 20px;
+  margin-right: 12px;
+}
+
+.folder-card-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin-right: 12px;
+}
+
+/* Folder System - Legacy (kept for MoveToModal) */
 .folder-tree {
   background: white;
   border-radius: 12px;
@@ -912,6 +936,120 @@
   background: white;
   border-color: #e5e7eb;
   color: #6b7280;
+}
+
+/* Input error styles */
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.input-error-message {
+  font-size: 12px;
+  color: #dc2626;
+  margin: 4px 0 0;
+}
+
+/* Create Folder Modal */
+.create-folder-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  max-width: calc(100% - 32px);
+}
+
+.create-folder-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.create-folder-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.modal-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  background: #e5e7eb;
+}
+
+.create-folder-modal-body {
+  padding: 20px;
+}
+
+.create-folder-modal-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.create-folder-modal-input:focus {
+  border-color: #3b82f6;
+}
+
+.create-folder-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-cancel-btn,
+.modal-create-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+}
+
+.modal-cancel-btn {
+  background: white;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.modal-cancel-btn:hover {
+  background: #f3f4f6;
+}
+
+.modal-create-btn {
+  background: #111827;
+  border-color: #111827;
+  color: white;
+}
+
+.modal-create-btn:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.modal-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Folder Context Menu */
@@ -1225,19 +1363,4 @@
     font-size: 12px;
   }
 
-  .document-page-layout {
-    flex-direction: column;
-  }
-
-  .folder-sidebar {
-    width: 100%;
-  }
-
-  .folder-tree {
-    margin-bottom: 16px;
-  }
-
-  .folder-list {
-    max-height: 200px;
-  }
 }

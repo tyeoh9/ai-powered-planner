@@ -8,12 +8,10 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ path }: BreadcrumbProps) {
-  const { setCurrentFolder, setExpanded } = useFolderStore()
+  const { setCurrentFolder } = useFolderStore()
 
   function handleClick(folderId: string | null) {
     setCurrentFolder(folderId)
-    // Expand parent folders when navigating
-    path.forEach((f) => setExpanded(f.id, true))
   }
 
   return (
