@@ -6,7 +6,7 @@ import { SaveIndicator } from './SaveIndicator'
 
 export function DocumentHeader() {
   const router = useRouter()
-  const { title, setTitle } = useDocumentStore()
+  const { title, setTitle, saveError } = useDocumentStore()
 
   return (
     <div className="document-header">
@@ -18,13 +18,16 @@ export function DocumentHeader() {
         >
           &larr; Back
         </button>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Untitled"
-          className="document-title-input"
-        />
+        <div className="document-title-wrapper">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled"
+            className={`document-title-input ${saveError ? 'input-error' : ''}`}
+          />
+          {saveError && <p className="input-error-message">{saveError}</p>}
+        </div>
       </div>
       <div className="document-header-right">
         <SaveIndicator />

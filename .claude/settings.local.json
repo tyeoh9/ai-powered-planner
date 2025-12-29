@@ -6,7 +6,10 @@
       "Bash(npm install:*)",
       "Bash(gh pr view:*)",
       "Bash(gh api:*)",
-      "Bash(gh pr comment:*)"
+      "Bash(gh pr comment:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx:*)",
+      "Bash(git add:*)"
     ]
   }
 }

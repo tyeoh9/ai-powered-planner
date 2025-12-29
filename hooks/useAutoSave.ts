@@ -14,6 +14,7 @@ export function useAutoSave(getContent: () => JSONContent | undefined) {
     isDirty,
     markSaving,
     markSaved,
+    setSaveError,
   } = useDocumentStore()
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -28,15 +29,16 @@ export function useAutoSave(getContent: () => JSONContent | undefined) {
     isSavingRef.current = true
     markSaving()
 
-    try {
-      await updateDocument(currentDocId, { title, content })
+    const result = await updateDocument(currentDocId, { title, content })
+    if (result.success) {
       markSaved()
-    } catch (error) {
-      console.error('Auto-save failed:', error)
-    } finally {
-      isSavingRef.current = false
+    } else {
+      console.error('Auto-save failed:', result.error)
+      setSaveError(result.error)
     }
-  }, [currentDocId, title, getContent, markSaving, markSaved])
+
+    isSavingRef.current = false
+  }, [currentDocId, title, getContent, markSaving, markSaved, setSaveError])
 
   // Auto-save when dirty
   useEffect(() => {
