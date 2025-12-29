@@ -204,12 +204,14 @@ export async function deleteFolder(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-export async function moveFolder(id: string, newParentId: string | null): Promise<void> {
+export type MoveFolderResult = { success: true } | { success: false; error: string }
+
+export async function moveFolder(id: string, newParentId: string | null): Promise<MoveFolderResult> {
   const userId = await getUserId()
 
   // Can't move to self
   if (id === newParentId) {
-    throw new Error('Cannot move folder into itself')
+    return { success: false, error: 'Cannot move folder into itself' }
   }
 
   const { data: folders } = await supabase
@@ -217,18 +219,25 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
     .select('*')
     .eq('user_id', userId)
 
-  if (!folders) throw new Error('Failed to fetch folders')
+  if (!folders) return { success: false, error: 'Failed to fetch folders' }
+
+  const folder = folders.find(f => f.id === id)
+  if (!folder) return { success: false, error: 'Folder not found' }
+
+  // Check for duplicate name in target parent
+  const exists = await checkFolderNameExists(folder.name, newParentId, id)
+  if (exists) {
+    return { success: false, error: 'A folder with this name already exists in the target location' }
+  }
 
   // Check for circular reference
   if (newParentId && await wouldCreateCircular(id, newParentId, folders)) {
-    throw new Error('Cannot move folder into its own subfolder')
+    return { success: false, error: 'Cannot move folder into its own subfolder' }
   }
 
   // Check depth constraint
   if (newParentId) {
     const parentDepth = await getFolderDepth(newParentId, folders)
-    const folder = folders.find(f => f.id === id)
-    if (!folder) throw new Error('Folder not found')
 
     // Calculate max depth of subtree rooted at this folder
     const getSubtreeDepth = (folderId: string): number => {
@@ -239,7 +248,7 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
 
     const subtreeDepth = getSubtreeDepth(id)
     if (parentDepth + 1 + subtreeDepth >= MAX_DEPTH) {
-      throw new Error(`Move would exceed maximum folder depth of ${MAX_DEPTH}`)
+      return { success: false, error: `Move would exceed maximum folder depth of ${MAX_DEPTH}` }
     }
   }
 
@@ -252,7 +261,8 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
     .eq('id', id)
     .eq('user_id', userId)
 
-  if (error) throw new Error(error.message)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
 }
 
 export async function getFolderPath(folderId: string | null): Promise<Folder[]> {
