@@ -2,12 +2,14 @@ import { getDocuments } from '@/lib/actions/documents'
 import { getFolders } from '@/lib/actions/folders'
 import { DocumentList } from '@/components/Documents/DocumentList'
 import { SignOutButton } from '@/components/SignOutButton'
+import { AppAvatar } from '@/components/AppAvatar'
 
 export default async function Home() {
   const [documents, folders] = await Promise.all([getDocuments(), getFolders()])
 
   return (
     <main className="min-h-screen bg-gray-100 py-8">
+      <AppAvatar />
       <SignOutButton />
       <div className="max-w-6xl mx-auto px-8">
         <header className="text-center mb-8">

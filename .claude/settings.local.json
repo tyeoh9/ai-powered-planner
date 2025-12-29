@@ -8,7 +8,8 @@
       "Bash(gh api:*)",
       "Bash(gh pr comment:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(git add:*)"
     ]
   }
 }

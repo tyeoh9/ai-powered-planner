@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { DocumentCard } from './DocumentCard'
 import { FolderCard } from '@/components/Folders/FolderCard'
 import { CreateFolderButton } from '@/components/Folders/CreateFolderButton'
@@ -96,6 +97,14 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
 
       {isEmpty ? (
         <div className="document-list-empty">
+          <Image
+            src="/octopus_sleeping.svg"
+            alt="Sleeping octopus"
+            width={120}
+            height={120}
+            className="empty-state-image"
+            unoptimized
+          />
           <p>{currentFolderId ? 'This folder is empty' : 'No documents yet'}</p>
           <button onClick={handleCreateDocument} className="new-document-button">
             Create {currentFolderId ? 'a document here' : 'your first document'}
@@ -135,4 +144,3 @@ export function DocumentList({ initialDocuments, initialFolders }: DocumentListP
     </div>
   )
 }
-
