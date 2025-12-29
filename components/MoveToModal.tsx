@@ -53,6 +53,7 @@ export function MoveToModal({ item, onClose, onMoved }: MoveToModalProps) {
       return
     }
 
+    setIsMoving(false)
     onMoved()
     onClose()
   }
