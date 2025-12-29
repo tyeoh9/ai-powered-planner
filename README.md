@@ -2,8 +2,6 @@
 
 A smart text editor with AI-powered autocomplete that understands context and maintains document consistency.
 
-
-
 ## Features
 
 <div align="center">
