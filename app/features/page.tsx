@@ -1,4 +1,5 @@
 import { NavBar } from '@/components/NavBar'
+import { Footer } from '@/components/Footer'
 import Link from 'next/link'
 
 const GITHUB_URL = 'https://github.com/tyeoh9/ai-powered-planner'
@@ -136,6 +137,8 @@ export default function FeaturesPage() {
           </a>
         </div>
       </div>
+
+      <Footer />
     </main>
   )
 }

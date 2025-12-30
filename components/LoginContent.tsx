@@ -2,6 +2,7 @@
 
 import { signIn } from 'next-auth/react'
 import { NavBar } from './NavBar'
+import { Footer } from './Footer'
 
 export function LoginContent() {
   return (
@@ -79,6 +80,8 @@ export function LoginContent() {
           </a>
         </section>
       </div>
+
+      <Footer />
     </main>
   )
 }
