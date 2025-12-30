@@ -37,8 +37,11 @@ export function NavBar() {
           ) : (
             !isLoading && (
               <>
-                <Link href="/contribute" className="navbar-tab">
-                  Contribute
+                <Link href="/features" className="navbar-tab">
+                  Features
+                </Link>
+                <Link href="/changelog" className="navbar-tab">
+                  Changelog
                 </Link>
                 <button
                   onClick={() => signIn('google', { callbackUrl: '/' })}
