@@ -1,4 +1,4 @@
-# AI-Powered Document
+# Inky: An AI writing companion that thinks alongside you
 
 A smart text editor with AI-powered autocomplete that understands context and maintains document consistency.
 
