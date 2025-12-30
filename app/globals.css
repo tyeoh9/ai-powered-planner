@@ -1638,7 +1638,7 @@
   border-width: 1px 1px 0 1px;
 
   /* Make it very wide relative to text, but clamp to screen */
-  width: min(200%, 100vw);
+  width: min(200%, 90vw);
   
   /* Center it horizontally */
   left: 50%;
