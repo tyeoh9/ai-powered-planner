@@ -3,6 +3,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+
+# Build-time env vars (dummy values, real ones injected at runtime via Secret Manager)
+ENV SUPABASE_URL=https://placeholder.supabase.co
+ENV SUPABASE_SERVICE_KEY=placeholder
+ENV AUTH_SECRET=placeholder
+ENV AUTH_GOOGLE_ID=placeholder
+ENV AUTH_GOOGLE_SECRET=placeholder
+ENV ANTHROPIC_API_KEY=placeholder
+
 RUN npm run build
 
 FROM node:20-alpine AS runner
