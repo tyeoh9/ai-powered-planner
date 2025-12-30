@@ -1,10 +1,30 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { NavBar } from './NavBar'
 import { Footer } from './Footer'
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
+
+const HERO_TITLE = 'An AI writing companion that thinks alongside you'
 
 export function LoginContent() {
+  const [displayedText, setDisplayedText] = useState('')
+  const [isTyping, setIsTyping] = useState(true)
+  const { ref: whySectionRef, isVisible: whySectionVisible } = useScrollAnimation<HTMLElement>()
+  const { ref: featuresRef, isVisible: featuresVisible } = useScrollAnimation<HTMLDivElement>()
+
+  useEffect(() => {
+    if (displayedText.length < HERO_TITLE.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(HERO_TITLE.slice(0, displayedText.length + 1))
+      }, 70) // ~3.5s total for 50 chars
+      return () => clearTimeout(timeout)
+    } else {
+      setIsTyping(false)
+    }
+  }, [displayedText])
+
   return (
     <main className="login-page">
       <NavBar />
@@ -18,7 +38,10 @@ export function LoginContent() {
         >
           Read the documentation for this project &gt;
         </a>
-        <h1 className="hero-title">An AI writing companion that thinks alongside you</h1>
+        <h1 className="hero-title">
+          {displayedText}
+          {isTyping && <span className="typing-caret" />}
+        </h1>
         <p className="hero-subtitle">
           Real-time guidance and suggestions, seamlessly embedded in your documents.
         </p>
@@ -52,7 +75,10 @@ export function LoginContent() {
           <div className="hero-demo-fade" />
         </div>
 
-        <section className="why-section">
+        <section
+          ref={whySectionRef}
+          className={`why-section ${whySectionVisible ? 'animate-visible' : 'animate-hidden'}`}
+        >
           <h2 className="why-title">Writing, uninterrupted</h2>
           <p className="why-text">
             No more copy-pasting into chatbots or waiting for responses in a separate window.
@@ -60,16 +86,19 @@ export function LoginContent() {
             Accept with a keystroke, or keep going. Your flow stays intact.
           </p>
 
-          <div className="why-features">
-            <div className="why-feature-card">
+          <div
+            ref={featuresRef}
+            className={`why-features ${featuresVisible ? 'animate-visible' : 'animate-hidden'}`}
+          >
+            <div className="why-feature-card" style={{ transitionDelay: '0ms' }}>
               <h3>AI Suggestions</h3>
               <p>Real-time writing assistance that thinks alongside you.</p>
             </div>
-            <div className="why-feature-card">
+            <div className="why-feature-card" style={{ transitionDelay: '100ms' }}>
               <h3>Context-Aware</h3>
               <p>Suggestions that understand what you've already written.</p>
             </div>
-            <div className="why-feature-card">
+            <div className="why-feature-card" style={{ transitionDelay: '200ms' }}>
               <h3>Auto-save</h3>
               <p>Never lose your work. Saved as you write.</p>
             </div>

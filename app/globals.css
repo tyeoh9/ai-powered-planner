@@ -1452,12 +1452,21 @@
   z-index: 100;
   width: 1180px;
   max-width: calc(100% - 32px);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  padding: 8px 16px;
+  box-shadow: none;
+  transition: background 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out, backdrop-filter 0.3s ease-out;
+}
+
+.navbar-scrolled {
   background: rgba(26, 26, 26, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 8px 16px;
+  border-color: var(--border);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
@@ -1537,6 +1546,7 @@
 }
 
 .navbar-action-primary {
+  position: relative;
   padding: 8px 20px;
   font-size: 14px;
   font-weight: 500;
@@ -1545,12 +1555,32 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.15s ease;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.navbar-action-primary::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s ease;
+  z-index: -1;
 }
 
 .navbar-action-primary:hover {
-  background: var(--accent-hover);
   box-shadow: 0 2px 8px rgba(253, 119, 30, 0.3);
+  color: var(--accent);
+}
+
+.navbar-action-primary:hover::before {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Login page - Hero layout */
@@ -1596,6 +1626,22 @@
   color: var(--foreground);
   line-height: 1.1;
   margin-bottom: 16px;
+  min-height: 1.1em;
+}
+
+.typing-caret {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  background: var(--foreground);
+  margin-left: 4px;
+  vertical-align: text-bottom;
+  animation: blink-caret 530ms step-end infinite;
+}
+
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .hero-subtitle {
@@ -1606,6 +1652,7 @@
 }
 
 .hero-cta {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1618,13 +1665,33 @@
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-cta::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s ease;
+  z-index: -1;
 }
 
 .hero-cta:hover {
-  background: var(--accent-hover);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(253, 119, 30, 0.4);
+  color: var(--accent);
+}
+
+.hero-cta:hover::before {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Demo video section */
@@ -1669,6 +1736,18 @@
   text-align: center;
 }
 
+/* Scroll animations */
+.why-section.animate-hidden {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.why-section.animate-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
 .why-title {
   font-size: 40px;
   font-weight: 500;
@@ -1699,6 +1778,14 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   text-align: left;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out, border-color 0.15s ease;
+}
+
+.why-features.animate-visible .why-feature-card {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .why-feature-card h3 {
@@ -1996,6 +2083,7 @@
 
 /* CTA button */
 .contribute-cta {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2006,13 +2094,33 @@
   font-weight: 500;
   border-radius: 12px;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.contribute-cta::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s ease;
+  z-index: -1;
 }
 
 .contribute-cta:hover {
-  background: var(--accent-hover);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(253, 119, 30, 0.4);
+  color: var(--accent);
+}
+
+.contribute-cta:hover::before {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* CTA row */
