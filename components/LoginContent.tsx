@@ -50,6 +50,18 @@ export function LoginContent() {
           </video>
           <div className="hero-demo-fade" />
         </div>
+
+        <section className="why-section">
+          <h2 className="why-title">Writing, uninterrupted</h2>
+          <p className="why-text">
+            No more copy-pasting into chatbots or waiting for responses in a separate window.
+            Inky surfaces suggestions inline as you write—context-aware and instantly actionable.
+            Accept with a keystroke, or keep going. Your flow stays intact.
+          </p>
+          <a href="/features" className="why-link">
+            See all features &rarr;
+          </a>
+        </section>
       </div>
     </main>
   )

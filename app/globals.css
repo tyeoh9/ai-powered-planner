@@ -1662,6 +1662,39 @@
   pointer-events: none;
 }
 
+/* Why section */
+.why-section {
+  max-width: 640px;
+  margin: 80px auto 0;
+  text-align: center;
+}
+
+.why-title {
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 20px;
+}
+
+.why-text {
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.why-link {
+  font-size: 16px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s ease;
+}
+
+.why-link:hover {
+  opacity: 0.8;
+}
+
 /* Responsive navbar */
 @media (max-width: 640px) {
   .navbar {
