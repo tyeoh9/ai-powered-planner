@@ -2,14 +2,9 @@
 
 A smart text editor with AI-powered autocomplete that understands context and maintains document consistency.
 
-## Features
+![demo](https://github.com/user-attachments/assets/1083258c-d780-4605-beeb-1c0df00c173d)
 
-<div align="center">
-   <video autoplay loop muted controls>
-   <source src="public/demo.mp4" type="video/mp4">
-   Your browser does not support the video tag.
-   </video>
-</div>
+## Features
 
 ### Fill-in-the-Middle (FIM) Suggestions
 Context-aware text completions that understand both what comes before *and after* your cursor:
