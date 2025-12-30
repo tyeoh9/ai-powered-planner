@@ -36,12 +36,17 @@ export function NavBar() {
             </button>
           ) : (
             !isLoading && (
-              <button
-                onClick={() => signIn('google', { callbackUrl: '/' })}
-                className="navbar-action-primary"
-              >
-                Sign In
-              </button>
+              <>
+                <Link href="/contribute" className="navbar-tab">
+                  Contribute
+                </Link>
+                <button
+                  onClick={() => signIn('google', { callbackUrl: '/' })}
+                  className="navbar-action-primary"
+                >
+                  Sign In
+                </button>
+              </>
             )
           )}
         </div>
