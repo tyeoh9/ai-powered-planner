@@ -2,9 +2,11 @@
 
 A smart text editor with AI-powered autocomplete that understands context and maintains document consistency.
 
-![demo](https://github.com/user-attachments/assets/1083258c-d780-4605-beeb-1c0df00c173d)
+<img width="1470" height="916" alt="image" src="https://github.com/user-attachments/assets/806f572e-8ec2-44a9-b878-dd635cbbc6bb" />
 
 ## Features
+
+![demo](https://github.com/user-attachments/assets/1083258c-d780-4605-beeb-1c0df00c173d)
 
 ### Fill-in-the-Middle (FIM) Suggestions
 Context-aware text completions that understand both what comes before *and after* your cursor:
