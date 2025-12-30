@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Empty turbopack config to silence warning (allows turbopack to work)
+  output: 'standalone',
   turbopack: {},
   reactStrictMode: true,
   devIndicators: false,
