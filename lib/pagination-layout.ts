@@ -80,13 +80,16 @@ export function calculatePageBreaks(lines: LineInfo[]): PageBreak[] {
   const spacerBase = PAGE_PADDING_BOTTOM + PAGE_GAP + PAGE_PADDING_TOP
   let totalSpacerOffset = 0
   let currentPageContentEnd = PAGE_CONTENT_HEIGHT
+  let previousLineBottom = 0
 
   for (const line of lines) {
     const adjustedBottom = line.bottom + totalSpacerOffset
 
     if (adjustedBottom > currentPageContentEnd) {
-      const adjustedTop = line.top + totalSpacerOffset
-      const spaceRemaining = Math.max(0, currentPageContentEnd - adjustedTop)
+      // Calculate remaining space from where content actually ends (previous line)
+      // not from where the overflowing line starts
+      const adjustedPrevBottom = previousLineBottom + totalSpacerOffset
+      const spaceRemaining = Math.max(0, currentPageContentEnd - adjustedPrevBottom)
       const spacerHeight = spaceRemaining + spacerBase
 
       breaks.push({
@@ -96,8 +99,13 @@ export function calculatePageBreaks(lines: LineInfo[]): PageBreak[] {
       })
 
       totalSpacerOffset += spacerHeight
-      currentPageContentEnd = adjustedTop + spacerHeight + PAGE_CONTENT_HEIGHT
+      // Next page boundary: current line's adjusted position + full page content height
+      // The overflowing line starts at top of new page, so next boundary is that + PAGE_CONTENT_HEIGHT
+      const adjustedLineTop = line.top + totalSpacerOffset
+      currentPageContentEnd = adjustedLineTop + PAGE_CONTENT_HEIGHT
     }
+
+    previousLineBottom = line.bottom
   }
 
   return breaks

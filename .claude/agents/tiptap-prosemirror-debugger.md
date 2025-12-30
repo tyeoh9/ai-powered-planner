@@ -56,3 +56,65 @@ Ask targeted questions:
 - "Need to see [specific file/function]"
 - "What browser/viewport size reproduces this?"
 - "Can you log output of [specific measurement]?"
+
+## Runtime Verification Strategies
+
+When debugging code-vs-UI discrepancies, generate these verification tools:
+
+**Console Logging:**
+Insert at key measurement points:
+```typescript
+// In measureLinesWithSpacers()
+console.log('[pagination] line measurement:', { pos, top, bottom, height })
+
+// In calculatePageBreaks()
+console.log('[pagination] break inserted:', { position, spacerHeight, pageIndex })
+
+// In overflow handlers
+console.log('[pagination] overflow check:', { scrollHeight, threshold: PAGE_CONTENT_HEIGHT, overflow: scrollHeight > PAGE_CONTENT_HEIGHT })
+```
+
+**Debug Overlays:**
+Generate code for temporary visual indicators:
+```typescript
+// Add to pagination plugin for debugging
+function addDebugOverlays(breaks: PageBreak[]) {
+  breaks.forEach((brk, i) => {
+    const marker = document.createElement('div')
+    marker.style.cssText = `
+      position: absolute;
+      left: 0; right: 0;
+      top: ${brk.position}px;
+      height: 2px;
+      background: red;
+      pointer-events: none;
+      z-index: 9999;
+    `
+    marker.dataset.pageBreak = String(i)
+    document.querySelector('.pages-container')?.appendChild(marker)
+  })
+}
+```
+
+**Runtime Assertions:**
+Generate checks comparing calculated vs actual:
+```typescript
+// Verify plugin state matches DOM
+function assertPaginationSync(editor: Editor) {
+  const pluginBreaks = getPaginationState(editor).breaks
+  const domHeight = editor.view.dom.scrollHeight
+  const expectedPages = Math.ceil(domHeight / PAGE_CONTENT_HEIGHT)
+  const actualPages = pluginBreaks.length + 1
+
+  console.assert(
+    Math.abs(expectedPages - actualPages) <= 1,
+    `Page count mismatch: expected ~${expectedPages}, got ${actualPages}`
+  )
+}
+```
+
+**DevTools Workflow:**
+1. Set breakpoint in `calculatePageBreaks()`
+2. Inspect `lines` array - verify measurements match visual positions
+3. Check `breaks` output - verify break positions align with page boundaries
+4. Use Elements panel to compare calculated heights vs actual offsetHeight

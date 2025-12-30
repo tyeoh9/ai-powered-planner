@@ -75,3 +75,80 @@ You design pagination where:
 - Code snippets over prose when clearer
 - Flag anti-patterns immediately with fix
 - Provide position-to-page mapping logic when relevant
+
+## Test Generation
+
+When asked, generate complete Playwright tests. Output runnable code, not recommendations.
+
+**Page Break Tests:**
+```typescript
+test('inserts page break at height threshold', async ({ page }) => {
+  await page.goto('/editor')
+
+  // Fill content until overflow
+  await page.locator('.ProseMirror').fill('A\n'.repeat(50))
+
+  // Verify page break decoration exists
+  const spacer = page.locator('.page-break-spacer')
+  await expect(spacer).toBeVisible()
+
+  // Verify spacer position aligns with page boundary
+  const spacerBox = await spacer.boundingBox()
+  expect(spacerBox.y).toBeCloseTo(PAGE_CONTENT_HEIGHT, 10)
+})
+```
+
+**Content Redistribution Tests:**
+```typescript
+test('redistributes content on overflow', async ({ page }) => {
+  await page.goto('/editor')
+
+  // Add content that spans 2 pages
+  await page.locator('.ProseMirror').fill('Line\n'.repeat(60))
+
+  // Count page shadows
+  const pages = page.locator('.page-shadow')
+  await expect(pages).toHaveCount(2)
+
+  // Screenshot for visual verification
+  await expect(page).toHaveScreenshot('two-pages.png')
+})
+```
+
+**Cursor Navigation Tests:**
+```typescript
+test('cursor navigates across page break', async ({ page }) => {
+  await page.goto('/editor')
+  await page.locator('.ProseMirror').fill('A\n'.repeat(50))
+
+  // Position cursor at end of page 1
+  await page.keyboard.press('Control+End')
+  await page.keyboard.press('ArrowUp')
+
+  // Navigate down across break
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+
+  // Verify cursor on page 2 (check selection position)
+  const selection = await page.evaluate(() => {
+    const sel = window.getSelection()
+    return sel?.anchorNode?.parentElement?.closest('.page-shadow')?.dataset.page
+  })
+  expect(selection).toBe('1') // 0-indexed
+})
+```
+
+**Visual Snapshot Tests:**
+```typescript
+test('pagination visual regression', async ({ page }) => {
+  await page.goto('/editor')
+  await page.locator('.ProseMirror').fill(MULTI_PAGE_CONTENT)
+
+  // Full editor snapshot
+  await expect(page.locator('.pages-container')).toHaveScreenshot('pagination-full.png')
+
+  // Page boundary region
+  await expect(page).toHaveScreenshot('page-boundary.png', {
+    clip: { x: 0, y: PAGE_HEIGHT - 100, width: PAGE_WIDTH, height: 200 }
+  })
+})
