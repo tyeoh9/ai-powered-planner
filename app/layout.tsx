@@ -11,8 +11,11 @@ const fredoka = Fredoka({
 })
 
 export const metadata: Metadata = {
-  title: 'AI-powered Document',
+  title: 'Inky: AI writing companion',
   description: 'An AI-powered planning editor with predictive suggestions',
+  icons: {
+    icon: '/octopus.svg',
+  },
 }
 
 export default function RootLayout({
