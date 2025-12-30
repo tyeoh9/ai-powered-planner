@@ -58,6 +58,22 @@ export function LoginContent() {
             Inky surfaces suggestions inline as you write—context-aware and instantly actionable.
             Accept with a keystroke, or keep going. Your flow stays intact.
           </p>
+
+          <div className="why-features">
+            <div className="why-feature-card">
+              <h3>AI Suggestions</h3>
+              <p>Real-time writing assistance that thinks alongside you.</p>
+            </div>
+            <div className="why-feature-card">
+              <h3>Context-Aware</h3>
+              <p>Suggestions that understand what you've already written.</p>
+            </div>
+            <div className="why-feature-card">
+              <h3>Auto-save</h3>
+              <p>Never lose your work. Saved as you write.</p>
+            </div>
+          </div>
+
           <a href="/features" className="why-link">
             See all features &rarr;
           </a>
