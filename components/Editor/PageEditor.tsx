@@ -18,8 +18,6 @@ interface PageEditorProps {
 
 export function PageEditor({ content, pageIndex, onUpdate, isUpdating, onOverflow, editorRef }: PageEditorProps) {
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const measureTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
     extensions: [
@@ -42,7 +40,10 @@ export function PageEditor({ content, pageIndex, onUpdate, isUpdating, onOverflo
         clearTimeout(updateTimeoutRef.current)
       }
 
-      updateTimeoutRef.current = setTimeout(() => {
+      updateTimeoutRef.current = setTimeout(async () => {
+        // Wait for fonts to load before measuring
+        await document.fonts.ready
+
         // Get HTML content to preserve paragraph structure
         const newContent = editor.getHTML()
         // Measure actual height
@@ -77,29 +78,21 @@ export function PageEditor({ content, pageIndex, onUpdate, isUpdating, onOverflo
   useEffect(() => {
     if (!editor) return
 
-    const measureHeight = () => {
+    const measureHeight = async () => {
       if (isUpdating.current) return
-      
-      const editorElement = editor.view.dom
-      const height = editorElement.scrollHeight
-      
+
+      await document.fonts.ready
+
+      const height = editor.view.dom.scrollHeight
       if (height > PAGE_CONTENT_HEIGHT) {
         onOverflow?.(pageIndex)
       }
     }
 
-    // Measure more frequently to catch overflow quickly
     const interval = setInterval(measureHeight, 100)
-    
-    // Also measure on resize and mutation
-    const resizeObserver = new ResizeObserver(() => {
-      measureHeight()
-    })
-    
-    const mutationObserver = new MutationObserver(() => {
-      measureHeight()
-    })
-    
+    const resizeObserver = new ResizeObserver(measureHeight)
+    const mutationObserver = new MutationObserver(measureHeight)
+
     if (editor.view.dom) {
       resizeObserver.observe(editor.view.dom)
       mutationObserver.observe(editor.view.dom, {
@@ -134,9 +127,6 @@ export function PageEditor({ content, pageIndex, onUpdate, isUpdating, onOverflo
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current)
       }
-      if (measureTimeoutRef.current) {
-        clearTimeout(measureTimeoutRef.current)
-      }
       editor?.destroy()
     }
   }, [editor])
@@ -144,10 +134,9 @@ export function PageEditor({ content, pageIndex, onUpdate, isUpdating, onOverflo
   if (!editor) return null
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        height: '100%', 
+    <div
+      style={{
+        height: '100%',
         overflow: 'hidden',
         maxHeight: PAGE_CONTENT_HEIGHT,
         position: 'relative',

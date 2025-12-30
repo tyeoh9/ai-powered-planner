@@ -46,6 +46,32 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
             }
 
             if (tr.docChanged) {
+              // Check if this is a full document replacement (like setContent)
+              // Multiple heuristics to catch different replacement patterns
+              const isFullReplacement = tr.steps.some(step => {
+                const stepMap = step.getMap()
+                let startsAtZero = false
+                let coversOldDoc = false
+
+                // Use forEach to inspect the step's ranges
+                stepMap.forEach((oldStart, oldEnd) => {
+                  if (oldStart === 0) startsAtZero = true
+                  if (oldEnd >= tr.before.content.size - 10) coversOldDoc = true
+                })
+
+                // Heuristic 2: Large content size change
+                const oldSize = tr.before.content.size
+                const newSize = tr.doc.content.size
+                const largeSizeChange = Math.abs(newSize - oldSize) > oldSize * 0.3
+
+                return (startsAtZero && coversOldDoc) || (startsAtZero && largeSizeChange)
+              })
+
+              if (isFullReplacement) {
+                // Clear stale breaks for fresh measurement
+                return { decorations: DecorationSet.empty, pageBreaks: [] }
+              }
+
               return {
                 decorations: oldState.decorations.map(tr.mapping, tr.doc),
                 pageBreaks: oldState.pageBreaks,
@@ -122,13 +148,35 @@ export const PaginationPlugin = Extension.create<PaginationPluginOptions>({
             }
           }
 
+          const scheduleLayoutAfterFonts = (delayMs: number = 0) => {
+            document.fonts.ready.then(() => {
+              if (delayMs > 0) {
+                setTimeout(scheduleLayout, delayMs)
+              } else {
+                scheduleLayout()
+              }
+            })
+          }
+
           // Initial calculation
-          setTimeout(scheduleLayout, 50)
+          scheduleLayoutAfterFonts(50)
 
           return {
             update(view, prevState) {
               if (view.state.doc !== prevState.doc) {
-                scheduleLayout()
+                // Multiple passes to ensure DOM is fully rendered and fonts loaded
+                // Pass 1: Immediate (may catch fast renders)
+                scheduleLayoutAfterFonts()
+                // Pass 2: After paint (RAF)
+                requestAnimationFrame(() => {
+                  scheduleLayoutAfterFonts()
+                  // Pass 3: After second paint (double RAF - catches slow renders)
+                  requestAnimationFrame(() => {
+                    scheduleLayoutAfterFonts()
+                    // Pass 4: Delayed (catches very slow font renders)
+                    setTimeout(() => scheduleLayoutAfterFonts(), 100)
+                  })
+                })
               }
             },
             destroy() {

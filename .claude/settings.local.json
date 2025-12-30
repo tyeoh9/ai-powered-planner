@@ -9,7 +9,8 @@
       "Bash(gh pr comment:*)",
       "Bash(npx tsc:*)",
       "Bash(npx:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(grep:*)"
     ]
   }
 }
