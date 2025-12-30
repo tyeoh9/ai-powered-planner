@@ -1,14 +1,24 @@
 'use client'
 
 import { useSession, signOut, signIn } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 export function NavBar() {
   const { data: session, status } = useSession()
   const isLoading = status === 'loading'
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
       <div className="navbar-content">
         {/* Left: Logo */}
         <Link href={session ? '/' : '/login'} className="navbar-logo">
@@ -37,8 +47,11 @@ export function NavBar() {
           ) : (
             !isLoading && (
               <>
-                <Link href="/contribute" className="navbar-tab">
-                  Contribute
+                <Link href="/features" className="navbar-tab">
+                  Features
+                </Link>
+                <Link href="/changelog" className="navbar-tab">
+                  Changelog
                 </Link>
                 <button
                   onClick={() => signIn('google', { callbackUrl: '/' })}
