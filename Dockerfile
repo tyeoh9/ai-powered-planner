@@ -10,7 +10,7 @@ ENV SUPABASE_SERVICE_KEY=placeholder
 ENV AUTH_SECRET=placeholder
 ENV AUTH_GOOGLE_ID=placeholder
 ENV AUTH_GOOGLE_SECRET=placeholder
-ENV ANTHROPIC_API_KEY=placeholder
+ENV ANTHROPIC_API_KEY=sk-ant-api03-placeholder-placeholder-placeholder-placeholder-placeholder
 
 RUN npm run build
 

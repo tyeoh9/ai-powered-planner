@@ -7,6 +7,9 @@ import type { ConflictAnalysis, ConflictType } from '@/types'
 
 export const runtime = 'nodejs'
 
+// Debug: log API key presence at module load
+console.log('[analyze] ANTHROPIC_API_KEY at module load:', process.env.ANTHROPIC_API_KEY ? `${process.env.ANTHROPIC_API_KEY.slice(0, 20)}...` : 'NOT SET')
+
 const ANALYZE_SYSTEM_PROMPT = `You are a document consistency analyzer. The user has made an edit to their document. Your job is to check if other parts of the document are now inconsistent with this edit.
 
 IMPORTANT: Focus on LOGICAL consistency, not just word matching. For example:
