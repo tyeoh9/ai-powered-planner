@@ -5,7 +5,7 @@ import { DEFAULT_AI_MODEL } from '@/lib/constants'
 import { auth } from '@/lib/auth'
 import type { ConflictAnalysis, ConflictType } from '@/types'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const ANALYZE_SYSTEM_PROMPT = `You are a document consistency analyzer. The user has made an edit to their document. Your job is to check if other parts of the document are now inconsistent with this edit.
 

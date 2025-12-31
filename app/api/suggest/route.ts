@@ -9,7 +9,7 @@ import {
 import { auth } from '@/lib/auth'
 import type { FIMPayload } from '@/types'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 /**
  * Creates an error response with proper headers

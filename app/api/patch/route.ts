@@ -4,7 +4,7 @@ import { DEFAULT_AI_MODEL } from '@/lib/constants'
 import { auth } from '@/lib/auth'
 import type { ConflictAnalysis, CursorContext } from '@/types'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const PATCH_SYSTEM_PROMPT = `You are a document consistency assistant. Update text to match recent changes.
 
