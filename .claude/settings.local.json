@@ -12,5 +12,9 @@
       "Bash(git add:*)",
       "Bash(grep:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }
