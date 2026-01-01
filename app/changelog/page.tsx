@@ -3,7 +3,7 @@ import { Footer } from '@/components/Footer'
 
 const changelog = [
   {
-    date: 'Dec 30, 2024',
+    date: 'Dec 30, 2025',
     version: '0.1.0',
     title: 'Initial Release',
     changes: [
