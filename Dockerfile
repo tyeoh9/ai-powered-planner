@@ -4,6 +4,12 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 
+# PostHog (build-time, baked into JS bundle)
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST
+
 # Build-time env vars (dummy values, real ones injected at runtime via Secret Manager)
 ENV SUPABASE_URL=https://placeholder.supabase.co
 ENV SUPABASE_SERVICE_KEY=placeholder
