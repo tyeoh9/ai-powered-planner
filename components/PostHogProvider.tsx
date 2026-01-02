@@ -18,21 +18,10 @@ function PostHogIdentify() {
 
   useEffect(() => {
     if (session?.user?.email) {
-      const email = session.user.email
-      const identifiedKey = `posthog_identified_${email}`
-
-      // Check if this is a new user (first time identifying)
-      const wasIdentified = localStorage.getItem(identifiedKey)
-
-      posthog.identify(email, {
-        email: email,
+      posthog.identify(session.user.email, {
+        email: session.user.email,
         name: session.user.name,
       })
-
-      if (!wasIdentified) {
-        posthog.capture('user_signed_up')
-        localStorage.setItem(identifiedKey, 'true')
-      }
     }
   }, [session?.user?.email, session?.user?.name])
 
