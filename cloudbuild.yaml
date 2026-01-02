@@ -3,7 +3,13 @@ options:
 
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/inky', '.']
+    args:
+      - 'build'
+      - '--build-arg=NEXT_PUBLIC_POSTHOG_KEY=${_NEXT_PUBLIC_POSTHOG_KEY}'
+      - '--build-arg=NEXT_PUBLIC_POSTHOG_HOST=${_NEXT_PUBLIC_POSTHOG_HOST}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/inky'
+      - '.'
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/inky']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
